@@ -219,8 +219,23 @@ def test_pdf_is_byte_reproducible(tmp_path):
     assert digests[0] == digests[1], 'PDF không tái lập được giữa hai lần chạy'
 
 
+def test_dashboard_data_reconciles_with_metrics():
+    """The dashboard computes its KPIs in the browser from embedded rows, so the rows themselves
+    must reconcile with metrics.json — otherwise the dashboard and the report disagree."""
+    import re
+    dash = (ROOT / 'charts/dashboard.html').read_text(encoding='utf8')
+    match = re.search(r'const rows=(\[.*?\]);const fmt', dash, re.S)
+    assert match, 'Không tìm thấy dữ liệu nhúng trong dashboard'
+    rows = json.loads(match.group(1))
+    metrics = json.loads((ROOT / 'results/metrics.json').read_text(encoding='utf8'))['metrics']
+    assert len(rows) == metrics['lines'], f"{len(rows)} dòng nhúng vs {metrics['lines']} dòng sạch"
+    assert sum(r['doanh_thu'] for r in rows) == metrics['revenue']
+    assert sum(r['so_luong'] for r in rows) == metrics['quantity']
+
+
 def test_committed_text_outputs_use_lf_only():
-    for rel in ['report/bao_cao.md', 'report/bao_cao.html', 'results/metrics.json', 'results/manifest.json']:
+    for rel in ['report/bao_cao.md', 'report/bao_cao.html', 'results/metrics.json',
+                'results/manifest.json', 'charts/dashboard.html']:
         data = (ROOT / rel).read_bytes()
         assert b'\r\n' not in data, f'{rel} chứa CRLF'
 

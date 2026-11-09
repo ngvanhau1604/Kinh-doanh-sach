@@ -36,7 +36,10 @@ def main():
         for k in scaled: PARAMS[k]=max(1,round(ratios[k]*a.n_lines))
     root=a.out.resolve()
     for p in ['data/raw','data/reference','data/processed','data/audit','results','charts','report']: (root/p).mkdir(parents=True,exist_ok=True)
-    def csv(d,p,index=False):d.to_csv(root/p,index=index,encoding='utf-8-sig')
+    def csv(d,p,index=False):
+        # utf-8-sig + CRLF is deliberate: Excel on Windows needs the BOM and the platform line
+        # ending to open Vietnamese text correctly. Text/HTML/JSON outputs are LF instead.
+        d.to_csv(root/p,index=index,encoding='utf-8-sig')
     catalog,truth=generate(seed=PARAMS['seed'],n=PARAMS['n_lines'],discount_strength=PARAMS['discount_strength'],seasonality=PARAMS['seasonality'])
     raw,events=corrupt(truth,seed=PARAMS['seed'],missing_rate=PARAMS['missing_rate'])
     csv(catalog,'data/reference/catalog.csv');csv(truth,'data/reference/ground_truth.csv');csv(raw,'data/raw/book_sales_raw.csv');csv(events,'data/audit/injected_errors.csv')
