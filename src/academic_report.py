@@ -1,14 +1,32 @@
-"""Academic structure and explanatory material for the submission report."""
+"""Academic structure and explanatory material for the submission report.
+
+Every quantity below is derived from the run that produced the report. Nothing here may be
+written as a literal: a stale literal is exactly the defect this module used to carry (base-case
+line counts, revenue and quarantine totals that survived a change of `n_lines`).
+"""
+from .config import PARAMS
 
 
-def enrich(sections):
+def enrich(sections, m, v, stages, q, raw):
+    from .report_builder import f
+
+    p = PARAMS
+    n_raw = len(raw)
+    n_clean = m['lines']
+    n_quarantine = len(q)
+    n_dup = n_raw - n_clean - n_quarantine
+    n_truth = p['n_lines']
+    n_removed = n_dup + n_quarantine
+    n_business_lost = n_truth - n_clean
+    revenue_gap = v['truth_revenue'] - v['clean_revenue']
+
     def block(title, *paragraphs):
-        return dict(title=title, paras=list(paragraphs), chart=None, table=None)
+        return dict(title=title, paras=list(paragraphs), chart=None, table=None, caption=None)
 
     introduction = block('Chương 1 Tổng quan đề tài',
         'Hoạt động bán sách tạo ra dữ liệu ở nhiều cấp độ, từ danh mục đầu sách đến từng dòng giao dịch. Để sử dụng dữ liệu phục vụ quản lý, cần thống nhất đơn vị quan sát, xác định các trường hợp sai và xây dựng chỉ tiêu có ý nghĩa nghiệp vụ. Một tổng bán hàng có thể tính đúng về số học nhưng vẫn thiếu giao dịch hoặc bị đếm lặp. Vì vậy, đề tài xem chất lượng dữ liệu và diễn giải kết quả là hai phần liên kết của cùng quá trình phân tích.',
         'Mục tiêu tổng quát là xây dựng bộ dữ liệu kinh doanh sách, xử lý dữ liệu, trực quan hóa và rút ra ý nghĩa từ kết quả. Các mục tiêu cụ thể gồm thiết kế danh mục và giao dịch có khóa định danh, mô phỏng lỗi thường gặp, xây dựng quy trình xử lý có thể truy vết, mô tả cơ cấu bán hàng và đánh giá mức phụ thuộc của kết luận vào giả định đầu vào.',
-        'Phạm vi nghiên cứu gồm 300 đầu sách thuộc 10 thể loại, năm kênh giả lập và thời gian từ tháng 1 năm 2024 đến tháng 12 năm 2025. Bộ dữ liệu được xây dựng bằng mô phỏng để có thể biết giá trị chuẩn trước khi cài lỗi. Lựa chọn này cho phép đánh giá trực tiếp khả năng phục hồi dữ liệu, đồng thời giới hạn mọi kết luận kinh doanh trong phạm vi mô hình đã thiết kế.',
+        f'Phạm vi nghiên cứu gồm {f(p["n_books"])} đầu sách thuộc 10 thể loại, năm kênh giả lập và thời gian từ tháng 1 năm 2024 đến tháng 12 năm 2025. Bộ dữ liệu được xây dựng bằng mô phỏng để có thể biết giá trị chuẩn trước khi cài lỗi. Lựa chọn này cho phép đánh giá trực tiếp khả năng phục hồi dữ liệu, đồng thời giới hạn mọi kết luận kinh doanh trong phạm vi mô hình đã thiết kế.',
         'Báo cáo triển khai theo sáu chương. Chương 1 xác định bài toán và câu hỏi. Chương 2 trình bày cơ sở phương pháp. Chương 3 mô tả quá trình xây dựng và xử lý dữ liệu. Chương 4 phân tích kết quả trực quan. Chương 5 đánh giá độ nhạy. Chương 6 thảo luận ý nghĩa, hạn chế và hướng phát triển. Các phụ lục cung cấp cấu trúc dữ liệu và cách tái lập kết quả.')
     theory = block('Chương 2 Cơ sở phương pháp',
         'Phân tích khám phá dữ liệu được sử dụng để mô tả phân phối, phát hiện quan sát bất thường và xác định quan hệ cần xem xét sâu hơn. Trong đề tài này, thống kê mô tả đi trước diễn giải kinh doanh. Mỗi kết quả phải xác định tập dữ liệu, đơn vị quan sát, công thức tổng hợp và mẫu số. Cách tổ chức này giúp phân biệt sự thay đổi của dữ liệu với sự thay đổi do bộ lọc hoặc cách tính.',
@@ -23,19 +41,28 @@ def enrich(sections):
         sections[i]['title'] = title
     sections[1]['table'] = None
     sections[0]['title'] = 'Tóm tắt nghiên cứu'
-    sections[0]['paras'] = [p for p in sections[0]['paras'] if not p.startswith('NGHIÊN CỨU')]
-    sections[0]['paras'] = [p.replace(' Nhóm cần bổ sung thông tin bìa học phần và kiểm tra hiểu biết trước khi nộp.', '') for p in sections[0]['paras']]
+    sections[0]['paras'] = [p_ for p_ in sections[0]['paras'] if not p_.startswith('NGHIÊN CỨU')]
+    sections[0]['paras'] = [p_.replace(' Nhóm cần bổ sung thông tin bìa học phần và kiểm tra hiểu biết trước khi nộp.', '') for p_ in sections[0]['paras']]
     sections[2]['paras'].append('Thiết kế mô phỏng còn phân biệt hai nguồn biến động. Biến động giữa các dòng đến từ ngày bán, sách, kênh và số cuốn được lấy ngẫu nhiên. Khác biệt có hệ thống đến từ trọng số thể loại, mức giảm theo kênh và hệ số mùa vụ. Khi một nhóm đứng đầu, cần xem lại cả hai nguồn trước khi diễn giải. Seed cố định cho phép tái tạo cùng bộ dữ liệu, còn nhiều seed cho phép quan sát mức dao động do tính ngẫu nhiên.')
     sections[3]['paras'].append('Thứ tự làm sạch ảnh hưởng đến khả năng nhận diện bản sao. Hai dòng có cùng ý nghĩa nhưng khác cách viết tiền tệ hoặc khoảng trắng chỉ được nhận diện nhất quán sau chuẩn hóa. Ngược lại, gộp mọi dòng có cùng mã trước khi so nội dung có thể làm mất dấu xung đột. Quy trình vì vậy chuẩn hóa biểu diễn trước, so sánh nội dung theo khóa sau và ghi lại trạng thái cuối cho toàn bộ bản ghi nguồn.')
-    sections[4]['paras'].append('Số dòng giảm từ 6.660 xuống 6.480 cần được đọc theo hai mẫu số. Có 155 bản sao được gộp và 25 dòng nguồn được cách ly, tổng cộng 180 dòng rời tập nguồn. Tuy nhiên, 6.500 mã nghiệp vụ chuẩn chỉ giảm 20 mã, vì các bản sao không đại diện giao dịch bổ sung. Do đó tỷ lệ giữ dữ liệu nghiệp vụ được tính bằng 6.480/6.500, thay vì 6.480/6.660. Việc công bố cả hai số giúp tránh đánh đồng khử trùng với mất giao dịch.')
+    sections[4]['paras'].append(
+        f'Số dòng giảm từ {f(n_raw)} xuống {f(n_clean)} cần được đọc theo hai mẫu số. Có {f(n_dup)} bản sao được gộp và {f(n_quarantine)} dòng nguồn được cách ly, tổng cộng {f(n_removed)} dòng rời tập nguồn. '
+        f'Tuy nhiên, {f(n_truth)} mã nghiệp vụ chuẩn chỉ giảm {f(n_business_lost)} mã, vì các bản sao không đại diện giao dịch bổ sung. Do đó tỷ lệ giữ dữ liệu nghiệp vụ được tính bằng {f(n_clean)}/{f(n_truth)}, thay vì {f(n_clean)}/{f(n_raw)}. '
+        'Việc công bố cả hai số giúp tránh đánh đồng khử trùng với mất giao dịch.')
     sections[7]['paras'].append('So sánh tháng dựa trên tổng giá trị cần xem thêm số ngày lịch và số giao dịch trong từng tháng. Tháng ngắn hơn có ít cơ hội phát sinh dòng bán hơn khi ngày được chọn đều. Vì vậy mức chênh lệch đỉnh và đáy là kết quả mô tả tổng hợp. Một phân tích vận hành mở rộng có thể báo cáo thêm giá trị bình quân theo ngày hoạt động và số cuốn trên đơn để tách quy mô giao dịch khỏi giá trị mỗi giao dịch.')
-    sections[12]['paras'].append('Sai lệch tổng giá trị trung bình ở cả ba kịch bản nằm quanh −0,32%. Kết quả này cho thấy cơ chế cách ly gây thiếu tổng trong các lần thử đang xét, kể cả khi giả định về mùa vụ hoặc giảm giá thay đổi. Đây là một lý do cần theo dõi chỉ tiêu đầy đủ song song với chỉ tiêu sửa đúng. Khi tăng số lần chạy, MCSE của trung bình thường giảm theo căn bậc hai của số lần chạy trong điều kiện các lần chạy độc lập và phương sai hữu hạn.')
-    sections[14]['paras'] = [p for p in sections[14]['paras'] if not p.startswith(('Trách nhiệm nhóm:', 'Không có căn cứ'))]
-    sections[14]['paras'].insert(1, 'Ý nghĩa quản trị trực tiếp của kết quả là xây dựng cơ chế đối soát trước khi sử dụng báo cáo bán hàng. Sai lệch 9.125.000 đồng giữa tập chuẩn và tập sạch cho biết phần giá trị nằm trong các giao dịch chưa đủ điều kiện phân tích. Khi vận hành thực tế, người phụ trách dữ liệu cần rà soát hồ sơ gốc của các mã bị cách ly, cập nhật trạng thái xử lý và tính lại tổng sau khi xác minh. Nhờ đó, báo cáo thể hiện cả kết quả phân tích và phạm vi dữ liệu đang chờ xử lý.')
+    sections[12]['paras'].append(
+        f'Sai lệch tổng giá trị trung bình ở cả ba kịch bản nằm quanh {f(v["relative_revenue_error_pct"],3)}%. Kết quả này cho thấy cơ chế cách ly gây thiếu tổng trong các lần thử đang xét, kể cả khi giả định về mùa vụ hoặc giảm giá thay đổi. '
+        'Đây là một lý do cần theo dõi chỉ tiêu đầy đủ song song với chỉ tiêu sửa đúng. Khi tăng số lần chạy, MCSE của trung bình thường giảm theo căn bậc hai của số lần chạy trong điều kiện các lần chạy độc lập và phương sai hữu hạn.')
+    sections[14]['paras'] = [p_ for p_ in sections[14]['paras'] if not p_.startswith(('Trách nhiệm nhóm:', 'Không có căn cứ'))]
+    sections[14]['paras'].insert(1,
+        f'Ý nghĩa quản trị trực tiếp của kết quả là xây dựng cơ chế đối soát trước khi sử dụng báo cáo bán hàng. Sai lệch {f(revenue_gap)} đồng giữa tập chuẩn và tập sạch cho biết phần giá trị nằm trong các giao dịch chưa đủ điều kiện phân tích. '
+        'Khi vận hành thực tế, người phụ trách dữ liệu cần rà soát hồ sơ gốc của các mã bị cách ly, cập nhật trạng thái xử lý và tính lại tổng sau khi xác minh. Nhờ đó, báo cáo thể hiện cả kết quả phân tích và phạm vi dữ liệu đang chờ xử lý.')
     sections[14]['paras'].insert(2, 'Các kết quả theo thể loại, sách, kênh và thời gian cung cấp cấu trúc cho một báo cáo quản trị định kỳ. Người quản lý có thể dùng cấu trúc này để chọn nhóm cần kiểm tra thêm, chẳng hạn một đầu sách có tổng lượng cao do ít đơn mua nhiều. Quyết định nhập hàng cần bổ sung tồn kho và thời gian cung ứng. Quyết định khuyến mãi cần bổ sung giá vốn và chi phí kênh. Việc nêu dữ liệu cần bổ sung giúp chuyển nhận xét mô tả thành một quy trình ra quyết định có điều kiện kiểm chứng.')
     result = [sections[0], introduction, sections[1], theory,
         block('Chương 3 Xây dựng và xử lý dữ liệu', 'Quy trình gồm thiết kế danh mục, sinh giao dịch chuẩn, tạo bản dữ liệu có lỗi, chuẩn hóa và đối chiếu kết quả. Ba lớp dữ liệu nguồn, dữ liệu xử lý và dữ liệu kiểm chứng có vai trò riêng. Các bước xử lý đều ghi nhật ký để giải thích số dòng thay đổi và giá trị được sửa.'), *sections[2:5],
-        block('Chương 4 Kết quả phân tích và trực quan hóa', 'Toàn bộ phân tích trong chương sử dụng 6.480 dòng sạch của kịch bản cơ sở. Tổng giá trị bán hàng là 2.969.430.000 đồng với 30.790 cuốn. Các biểu đồ được đọc theo thứ tự từ cơ cấu sản phẩm đến thời gian, quan hệ giữa các biến và kênh phân phối. Mỗi mục trình bày kết quả định lượng, giải thích trong phạm vi mô hình và ý nghĩa thực hành.'), *sections[5:12],
+        block('Chương 4 Kết quả phân tích và trực quan hóa',
+            f'Toàn bộ phân tích trong chương sử dụng {f(n_clean)} dòng sạch của kịch bản cơ sở. Tổng giá trị bán hàng là {f(m["revenue"])} đồng với {f(m["quantity"])} cuốn. '
+            'Các biểu đồ được đọc theo thứ tự từ cơ cấu sản phẩm đến thời gian, quan hệ giữa các biến và kênh phân phối. Mỗi mục trình bày kết quả định lượng, giải thích trong phạm vi mô hình và ý nghĩa thực hành.'), *sections[5:12],
         block('Chương 5 Đánh giá độ nhạy của kết quả', 'Một kết quả xuất hiện trong một lần mô phỏng có thể phụ thuộc hạt giống ngẫu nhiên hoặc tham số thiết kế. Chương này thay đổi từng giả định và so sánh nhiều lần chạy. Các thí nghiệm bổ sung giúp nhận diện nguồn hình thành kết quả, đồng thời đánh giá lựa chọn xử lý thiếu dữ liệu.'), *sections[12:]]
     result.append(block('Phụ lục A Cấu trúc dữ liệu và khả năng truy vết',
         'Mã raw_row_id phân biệt từng bản ghi nguồn. Mã ma_dong phân biệt giao dịch nghiệp vụ và được giữ nguyên khi tạo bản sao. Mã ma_sach liên kết nhiều dòng bán với một sách trong danh mục. Ba mã này phục vụ ba mục đích khác nhau, nên khử trùng phải dựa vào mã nghiệp vụ và nội dung sau chuẩn hóa.',

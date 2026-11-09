@@ -1,0 +1,24 @@
+[project]
+name = "kinh-doanh-sach"
+version = "1.0.0"
+description = "Nghiên cứu mô phỏng có kiểm chứng: xây dựng, xử lý và trực quan hóa dữ liệu kinh doanh sách"
+# numpy 2.3.5 requires >=3.11; that is the binding constraint for the pinned set.
+requires-python = ">=3.11"
+dependencies = [
+    "numpy==2.3.5",
+    "pandas==2.3.3",
+    "matplotlib==3.10.7",
+    "plotly==6.4.0",
+    "nbformat==5.10.4",
+    "nbclient==0.10.2",
+    "ipykernel==7.1.0",
+    "notebook==7.5.0",
+    "reportlab==4.4.5",
+    "markdown==3.10",
+]
+
+[project.optional-dependencies]
+test = ["pytest==9.0.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
