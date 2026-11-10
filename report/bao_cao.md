@@ -1,5 +1,17 @@
 # Tóm tắt nghiên cứu
 
+TRƯỜNG: [CẦN ĐIỀN TÊN TRƯỜNG]
+
+KHOA/BỘ MÔN: [CẦN ĐIỀN KHOA HOẶC BỘ MÔN]
+
+HỌC PHẦN: [CẦN ĐIỀN TÊN HỌC PHẦN] — MÃ HỌC PHẦN: [CẦN ĐIỀN MÃ]
+
+GIẢNG VIÊN HƯỚNG DẪN: [CẦN ĐIỀN HỌ TÊN GIẢNG VIÊN]
+
+NHÓM THỰC HIỆN: [CẦN ĐIỀN HỌ TÊN THÀNH VIÊN VÀ MÃ SỐ SINH VIÊN]
+
+NƠI VÀ NĂM NỘP: [CẦN ĐIỀN ĐỊA ĐIỂM], 2026
+
 Bản nghiên cứu phục vụ học phần, ngày 08/11/2026. Thời gian được mô phỏng: 01/2024–12/2025. Tên sách, tác giả, nhà xuất bản, kênh bán và toàn bộ giao dịch đều giả lập. Không sử dụng dữ liệu giao dịch của doanh nghiệp hay khách hàng thật.
 
 Tóm tắt. Đề tài xây dựng 6.500 đơn một đầu sách từ danh mục 300 sách giả lập, chủ động thêm lỗi để tạo 6.660 dòng thô. Quy trình chuẩn hóa, đối chiếu danh mục và xử lý mã dòng thu được 6.478 dòng phân tích. Các trường được đối chiếu trên tập giữ lại khớp dữ liệu chuẩn; tuy nhiên giá trị bán hàng toàn kỳ vẫn chênh 2,992% do cách ly bản ghi. Điều này cho thấy tính đúng của từng dòng giữ lại khác với độ đầy đủ của toàn bộ dữ liệu.
@@ -37,7 +49,7 @@ Bối cảnh thực hành là một nhà sách giả định cần hiểu cơ c�
 
 Bảy câu hỏi mô tả: (1) thể loại nào đóng góp nhiều giá trị và số cuốn; (2) mã sách nào có giá trị bán hàng cao; (3) giá trị thay đổi theo tháng ra sao; (4) mức giá, giảm giá và lượng có quan hệ gì; (5) điểm giả lập có liên hệ với lượng ở cấp sách không; (6) cấu trúc tương quan giữa các biến ra sao; (7) cơ cấu theo kênh và phân khúc giá như thế nào. Câu hỏi kiểm chứng bổ sung: làm sạch sửa đúng đến đâu, mất bao nhiêu dữ liệu, và kết quả phụ thuộc giả định ra sao?
 
-Thiết kế tham khảo cấu trúc ADEMP [1], áp dụng ở mức phù hợp học phần: mục tiêu, cơ chế sinh, đại lượng cần tính, phương pháp và tiêu chí đánh giá. Đây là vận dụng khung báo cáo thí nghiệm mô phỏng, không phải nghiên cứu đề xuất phương pháp thống kê mới.
+Thiết kế tham khảo cấu trúc ADEMP (Morris và cộng sự, 2019), áp dụng ở mức phù hợp học phần: mục tiêu, cơ chế sinh, đại lượng cần tính, phương pháp và tiêu chí đánh giá. Đây là vận dụng khung báo cáo thí nghiệm mô phỏng, không phải nghiên cứu đề xuất phương pháp thống kê mới.
 
 Đơn vị dữ liệu là dòng đơn hàng một đầu sách. Mỗi mã đơn chỉ có một mã dòng trong mô hình này; số cuốn có thể lớn hơn 1. Không mô phỏng khách hàng, đơn nhiều đầu sách, chi phí, tồn kho, hoàn/hủy hoặc phễu chuyển đổi. Vì vậy không tính CAC, tỷ lệ mua lại, tỷ lệ bỏ giỏ hoặc lợi nhuận.
 
@@ -49,13 +61,13 @@ Phân tích khám phá dữ liệu được sử dụng để mô tả phân ph�
 
 Chất lượng dữ liệu được đánh giá qua tính hợp lệ, đầy đủ, duy nhất và nhất quán. Tính hợp lệ kiểm tra miền giá trị như số lượng nguyên dương và điểm trong khoảng 1 đến 5. Tính đầy đủ gồm độ bao phủ của trường và giao dịch. Tính duy nhất được kiểm tra bằng mã dòng nghiệp vụ. Tính nhất quán được đánh giá qua quan hệ giữa giá gốc, giảm giá và giá bán. Việc đạt một tiêu chí không suy ra các tiêu chí còn lại cũng đạt.
 
-Khung ADEMP được dùng để trình bày rõ mục tiêu, cơ chế sinh dữ liệu, đại lượng cần đánh giá, phương pháp và thước đo kết quả [1]. Trong nghiên cứu này, dữ liệu chuẩn tạo điều kiện đối chiếu nhưng được tách khỏi đầu vào làm sạch. Việc tách này giúp kiểm tra quy trình phục hồi bằng thông tin nghiệp vụ sẵn có thay vì vô tình sử dụng đáp án của thí nghiệm.
+Khung ADEMP được dùng để trình bày rõ mục tiêu, cơ chế sinh dữ liệu, đại lượng cần đánh giá, phương pháp và thước đo kết quả (Morris và cộng sự, 2019). Trong nghiên cứu này, dữ liệu chuẩn tạo điều kiện đối chiếu nhưng được tách khỏi đầu vào làm sạch. Việc tách này giúp kiểm tra quy trình phục hồi bằng thông tin nghiệp vụ sẵn có thay vì vô tình sử dụng đáp án của thí nghiệm.
 
 Với dòng i, đặt pᵢ là giá bán và qᵢ là số cuốn. Giá trị dòng bằng pᵢ × qᵢ. Tổng giá trị T là tổng giá trị của mọi dòng giữ lại, còn tổng lượng Q là tổng qᵢ. Giá bình quân có trọng số bằng T/Q. Trung bình đơn giản của giá theo dòng cho mỗi giao dịch trọng số bằng nhau, nên trả lời một câu hỏi khác khi số cuốn mỗi dòng khác nhau.
 
 Hệ số Pearson đo liên hệ tuyến tính giữa hai biến, nằm trong khoảng từ −1 đến 1 khi phương sai khác không. Hệ số gần 0 có thể đi cùng một quan hệ phi tuyến hoặc nhiều nhóm có cấu trúc khác nhau. Trong dữ liệu này, một sách xuất hiện nhiều lần nên phân tích điểm sách được tổng hợp ở cấp mã sách. Việc lựa chọn cấp tổng hợp là một phần của thiết kế phân tích.
 
-Boxplot mô tả trung vị, tứ phân vị và các điểm nằm ngoài râu hộp [3]. Quy tắc 1,5 lần khoảng tứ phân vị cung cấp dấu hiệu cần xem xét. Quyết định giữ hay cách ly còn phụ thuộc miền giá trị và bối cảnh nghiệp vụ. Các dòng mua nhiều được xem xét riêng vì có thể chi phối trung bình và hệ số tương quan.
+Boxplot mô tả trung vị, tứ phân vị và các điểm nằm ngoài râu hộp (NIST/SEMATECH, 2012). Quy tắc 1,5 lần khoảng tứ phân vị cung cấp dấu hiệu cần xem xét. Quyết định giữ hay cách ly còn phụ thuộc miền giá trị và bối cảnh nghiệp vụ. Các dòng mua nhiều được xem xét riêng vì có thể chi phối trung bình và hệ số tương quan.
 
 Biểu đồ cột phù hợp so sánh các nhóm danh mục, biểu đồ đường thể hiện thứ tự thời gian, biểu đồ phân tán thể hiện quan hệ hai biến và ma trận tương quan tóm tắt liên hệ tuyến tính. Khi dùng thang log cho lượng bán, khoảng cách bằng nhau biểu thị tỷ lệ thay đổi bằng nhau. Chú thích biểu đồ cần giúp người đọc nhận diện phép biến đổi này trước khi so sánh.
 
@@ -75,7 +87,7 @@ Ngày bán được chọn đều trên 731 ngày của 2024–2025. Giảm giá
 
 Số cuốn = 1 + Poisson(λ), trong đó λ = 1,5 × S × max(0,5; 1,8 − giá_bán/200.000) × (1 + β × giảm_giá_niêm_yết/30). Cơ sở: β=1; S=1,7 tháng 11–12, S=1,3 tháng 8–9, còn lại S=1. 8 dòng mua số lượng lớn 155–200 cuốn được thêm độc lập để kiểm tra xử lý ngoại lệ. Đây không phải mô hình đã được xác thực dự báo kinh doanh.
 
-Tính truy xuất: catalog.csv là danh mục nghiệp vụ đầu vào; ground_truth.csv chỉ dành cho đánh giá. injected_errors.csv mô tả lỗi đã cài; hàm làm sạch không đọc hai tệp kiểm chứng này. SHA-256 của tệp đầu ra được lưu trong manifest.json. Việc ghi metadata và nguồn gốc tham khảo nguyên tắc tái sử dụng dữ liệu [2].
+Tính truy xuất: catalog.csv là danh mục nghiệp vụ đầu vào; ground_truth.csv chỉ dành cho đánh giá. injected_errors.csv mô tả lỗi đã cài; hàm làm sạch không đọc hai tệp kiểm chứng này. SHA-256 của tệp đầu ra được lưu trong manifest.json. Việc ghi metadata và nguồn gốc tham khảo nguyên tắc tái sử dụng dữ liệu (GO FAIR Foundation, n.d.).
 
 Thiết kế mô phỏng còn phân biệt hai nguồn biến động. Biến động giữa các dòng đến từ ngày bán, sách, kênh và số cuốn được lấy ngẫu nhiên. Khác biệt có hệ thống đến từ trọng số thể loại, mức giảm theo kênh và hệ số mùa vụ. Khi một nhóm đứng đầu, cần xem lại cả hai nguồn trước khi diễn giải. Seed cố định cho phép tái tạo cùng bộ dữ liệu, còn nhiều seed cho phép quan sát mức dao động do tính ngẫu nhiên.
 
@@ -87,9 +99,9 @@ Các thuộc tính sách thiếu được tra bằng ma_sach trong catalog.csv, 
 
 Bước 3: gộp các bản sao có cùng mã dòng và cùng nội dung sau chuẩn hóa. Nếu cùng mã nhưng khác dữ liệu, cách ly tất cả biến thể để xác minh. Không dùng tên sách/ngày/kênh làm khóa thay thế vì các giao dịch độc lập có thể trùng thuộc tính.
 
-Bước 4: cách ly số lượng không dương, không nguyên hoặc trên 1.000, ngày sai, miền giá trị sai. Ngưỡng 1.000 là quy tắc cần rà soát trong kịch bản, không phải quy luật bán lẻ. Điểm vượt Q3+1,5×IQR chỉ được đánh dấu, không tự xóa [3]; nhờ vậy các dòng mua nhiều vẫn được giữ nếu hợp lệ.
+Bước 4: cách ly số lượng không dương, không nguyên hoặc trên 1.000, ngày sai, miền giá trị sai. Ngưỡng 1.000 là quy tắc cần rà soát trong kịch bản, không phải quy luật bán lẻ. Điểm vượt Q3+1,5×IQR chỉ được đánh dấu, không tự xóa (NIST/SEMATECH, 2012); nhờ vậy các dòng mua nhiều vẫn được giữ nếu hợp lệ.
 
-Tạo đặc trưng dùng một hàm chung: giá <80.000; 80.000≤giá≤200.000; giá>200.000. Điểm: <3,0; [3,0;4,0); [4,0;4,5); ≥4,5; thiếu thành Chưa biết. Quy ước biên được kiểm tra riêng vì pandas.cut mặc định đóng khoảng bên phải [4]. Nhật ký cell_changes ghi thay đổi ô; row_lineage cho biết trạng thái của từng dòng thô.
+Tạo đặc trưng dùng một hàm chung: giá <80.000; 80.000≤giá≤200.000; giá>200.000. Điểm: <3,0; [3,0;4,0); [4,0;4,5); ≥4,5; thiếu thành Chưa biết. Quy ước biên được kiểm tra riêng vì pandas.cut mặc định đóng khoảng bên phải (The pandas development team, 2024). Nhật ký cell_changes ghi thay đổi ô; row_lineage cho biết trạng thái của từng dòng thô.
 
 Bảng 2 trình bày số dòng, số ô thiếu và số mã dòng lặp sau từng bước; cột ô thiếu cho thấy dữ liệu thiếu được khôi phục hoặc cách ly ở bước nào.
 
@@ -442,13 +454,15 @@ Trách nhiệm nhóm: điền thông tin học phần, thành viên và đóng g
 
 # Tài liệu tham khảo và chỉ dẫn tái lập
 
-[1] Morris, T. P., White, I. R. và Crowther, M. J. (2019). Using simulation studies to evaluate statistical methods. Statistics in Medicine, 38, 2074–2102. DOI: 10.1002/sim.8086. https://pmc.ncbi.nlm.nih.gov/articles/PMC6492164/ (Truy cập 08/11/2026).
+Efron, B. (1979). Bootstrap methods: Another look at the jackknife. Annals of Statistics, 7(1), 1–26. https://doi.org/10.1214/aos/1176344552
 
-[2] GO FAIR Foundation. The FAIR Guiding Principles. Hướng dẫn về metadata và nguồn gốc dữ liệu. https://www.gofair.foundation/fair-principles (Truy cập 08/11/2026).
+GO FAIR Foundation. (n.d.). The FAIR guiding principles. Truy cập 08/11/2026, từ https://www.gofair.foundation/fair-principles
 
-[3] NIST/SEMATECH. e-Handbook of Statistical Methods, 1.3.3.7: Box Plot. https://www.itl.nist.gov/div898/handbook/eda/section3/boxplot.htm (Truy cập 08/11/2026).
+Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation studies to evaluate statistical methods. Statistics in Medicine, 38(11), 2074–2102. https://doi.org/10.1002/sim.8086
 
-[4] pandas. API reference: pandas.cut. Quy ước đầu mút khi phân nhóm. https://pandas.pydata.org/docs/reference/api/pandas.cut.html (Truy cập 08/11/2026).
+NIST/SEMATECH. (2012). e-Handbook of statistical methods (Section 1.3.3.7: Box plot). Truy cập 08/11/2026, từ https://www.itl.nist.gov/div898/handbook/eda/section3/boxplot.htm
+
+The pandas development team. (2024). pandas.cut [API reference]. Truy cập 08/11/2026, từ https://pandas.pydata.org/docs/reference/api/pandas.cut.html
 
 Nguồn sơ cấp của mọi con số mới: data/processed/book_sales_clean.csv, results/*.csv và results/metrics.json. Mã sinh và nhãn lỗi: src/data_generator.py, data/reference/ground_truth.csv, data/audit/injected_errors.csv. Nguồn cũ để truy xuất thay đổi: Kohaku1709/Kinh-doanh-sach-, commit 6bfe691904b4d721ee1a1743509f6b581b70ce81; các kết quả cũ không được sử dụng như số liệu của bản nghiên cứu mới.
 

@@ -13,10 +13,11 @@ from reportlab.lib.pagesizes import A4
 from .config import PARAMS
 
 SOURCES=[
-('Morris, T. P., White, I. R. và Crowther, M. J. (2019). Using simulation studies to evaluate statistical methods. Statistics in Medicine, 38, 2074–2102. DOI: 10.1002/sim.8086.','https://pmc.ncbi.nlm.nih.gov/articles/PMC6492164/'),
-('GO FAIR Foundation. The FAIR Guiding Principles. Hướng dẫn về metadata và nguồn gốc dữ liệu.','https://www.gofair.foundation/fair-principles'),
-('NIST/SEMATECH. e-Handbook of Statistical Methods, 1.3.3.7: Box Plot.','https://www.itl.nist.gov/div898/handbook/eda/section3/boxplot.htm'),
-('pandas. API reference: pandas.cut. Quy ước đầu mút khi phân nhóm.','https://pandas.pydata.org/docs/reference/api/pandas.cut.html'),
+('Efron, B. (1979). Bootstrap methods: Another look at the jackknife. Annals of Statistics, 7(1), 1–26. https://doi.org/10.1214/aos/1176344552','https://doi.org/10.1214/aos/1176344552'),
+('GO FAIR Foundation. (n.d.). The FAIR guiding principles. Truy cập 08/11/2026, từ https://www.gofair.foundation/fair-principles','https://www.gofair.foundation/fair-principles'),
+('Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation studies to evaluate statistical methods. Statistics in Medicine, 38(11), 2074–2102. https://doi.org/10.1002/sim.8086','https://doi.org/10.1002/sim.8086'),
+('NIST/SEMATECH. (2012). e-Handbook of statistical methods (Section 1.3.3.7: Box plot). Truy cập 08/11/2026, từ https://www.itl.nist.gov/div898/handbook/eda/section3/boxplot.htm','https://www.itl.nist.gov/div898/handbook/eda/section3/boxplot.htm'),
+('The pandas development team. (2024). pandas.cut [API reference]. Truy cập 08/11/2026, từ https://pandas.pydata.org/docs/reference/api/pandas.cut.html','https://pandas.pydata.org/docs/reference/api/pandas.cut.html'),
 ]
 
 def f(x,dec=0):
@@ -100,6 +101,15 @@ def build_sections(root,d,t,m,v,stages,exp,recovery,raw=None,missing=None,famili
     per_genre=p['n_books']//10
     section('Xây dựng và phân tích bộ dữ liệu kinh doanh',[
         'NGHIÊN CỨU MÔ PHỎNG CÓ KIỂM CHỨNG • NHẬP MÔN KHOA HỌC DỮ LIỆU',
+        # Cover block. Everything the group must fill in is marked [CẦN ĐIỀN] rather than
+        # invented: the template cannot know the institution, the lecturer or the member names,
+        # and a plausible-looking wrong name on a submitted cover is worse than a blank.
+        'TRƯỜNG: [CẦN ĐIỀN TÊN TRƯỜNG]',
+        'KHOA/BỘ MÔN: [CẦN ĐIỀN KHOA HOẶC BỘ MÔN]',
+        'HỌC PHẦN: [CẦN ĐIỀN TÊN HỌC PHẦN] — MÃ HỌC PHẦN: [CẦN ĐIỀN MÃ]',
+        'GIẢNG VIÊN HƯỚNG DẪN: [CẦN ĐIỀN HỌ TÊN GIẢNG VIÊN]',
+        'NHÓM THỰC HIỆN: [CẦN ĐIỀN HỌ TÊN THÀNH VIÊN VÀ MÃ SỐ SINH VIÊN]',
+        'NƠI VÀ NĂM NỘP: [CẦN ĐIỀN ĐỊA ĐIỂM], 2026',
         'Bản nghiên cứu phục vụ học phần, ngày 08/11/2026. Thời gian được mô phỏng: 01/2024–12/2025. Tên sách, tác giả, nhà xuất bản, kênh bán và toàn bộ giao dịch đều giả lập. Không sử dụng dữ liệu giao dịch của doanh nghiệp hay khách hàng thật.',
         f'Tóm tắt. Đề tài xây dựng {f(p["n_lines"])} đơn một đầu sách từ danh mục {f(p["n_books"])} sách giả lập, chủ động thêm lỗi để tạo {f(len(raw))} dòng thô. Quy trình chuẩn hóa, đối chiếu danh mục và xử lý mã dòng thu được {f(m["lines"])} dòng phân tích. Các trường được đối chiếu trên tập giữ lại khớp dữ liệu chuẩn; tuy nhiên giá trị bán hàng toàn kỳ vẫn chênh {f(v["relative_revenue_error_pct"],3)}% do cách ly bản ghi. Điều này cho thấy tính đúng của từng dòng giữ lại khác với độ đầy đủ của toàn bộ dữ liệu.',
         f'Kết quả mô tả của kịch bản cơ sở: {revenue} đồng giá trị bán hàng, {f(m["quantity"])} cuốn và {f(m["books"])} mã sách có phát sinh bán. Ba kịch bản được lặp {exp.seed.nunique()} lần để xem kết quả thay đổi khi bỏ hệ số khuyến mãi hoặc mùa vụ. Các khác biệt thu được chỉ đánh giá hành vi mô hình dưới giả định, không xác nhận quy luật thị trường Việt Nam.',
@@ -111,7 +121,7 @@ def build_sections(root,d,t,m,v,stages,exp,recovery,raw=None,missing=None,famili
     section('1. Bài toán, câu hỏi và thiết kế nghiên cứu',[
         'Bối cảnh thực hành là một nhà sách giả định cần hiểu cơ cấu sản phẩm, kênh bán và thời điểm phát sinh giá trị bán hàng, đồng thời kiểm soát lỗi trong dữ liệu nhập từ nhiều nguồn. Bài không có mẫu xác suất từ thị trường nên không đặt mục tiêu ước lượng thị phần, lợi nhuận hay hành vi độc giả thực.',
         'Bảy câu hỏi mô tả: (1) thể loại nào đóng góp nhiều giá trị và số cuốn; (2) mã sách nào có giá trị bán hàng cao; (3) giá trị thay đổi theo tháng ra sao; (4) mức giá, giảm giá và lượng có quan hệ gì; (5) điểm giả lập có liên hệ với lượng ở cấp sách không; (6) cấu trúc tương quan giữa các biến ra sao; (7) cơ cấu theo kênh và phân khúc giá như thế nào. Câu hỏi kiểm chứng bổ sung: làm sạch sửa đúng đến đâu, mất bao nhiêu dữ liệu, và kết quả phụ thuộc giả định ra sao?',
-        'Thiết kế tham khảo cấu trúc ADEMP [1], áp dụng ở mức phù hợp học phần: mục tiêu, cơ chế sinh, đại lượng cần tính, phương pháp và tiêu chí đánh giá. Đây là vận dụng khung báo cáo thí nghiệm mô phỏng, không phải nghiên cứu đề xuất phương pháp thống kê mới.',
+        'Thiết kế tham khảo cấu trúc ADEMP (Morris và cộng sự, 2019), áp dụng ở mức phù hợp học phần: mục tiêu, cơ chế sinh, đại lượng cần tính, phương pháp và tiêu chí đánh giá. Đây là vận dụng khung báo cáo thí nghiệm mô phỏng, không phải nghiên cứu đề xuất phương pháp thống kê mới.',
         'Đơn vị dữ liệu là dòng đơn hàng một đầu sách. Mỗi mã đơn chỉ có một mã dòng trong mô hình này; số cuốn có thể lớn hơn 1. Không mô phỏng khách hàng, đơn nhiều đầu sách, chi phí, tồn kho, hoàn/hủy hoặc phễu chuyển đổi. Vì vậy không tính CAC, tỷ lệ mua lại, tỷ lệ bỏ giỏ hoặc lợi nhuận.',
         'Đại lượng chính là tổng giá trị bán hàng T = tổng(giá bán × số cuốn). Giá bình quân theo cuốn = T / tổng số cuốn. Tỷ trọng nhóm = giá trị nhóm / T. Tăng trưởng mô phỏng năm 2025 = (T2025 / T2024 − 1) × 100%. Những đại lượng này đều mô tả tập dữ liệu, không ước lượng tổng thể thị trường.'
     ],table=[['Thành phần','Thiết kế đã thực hiện'],['Mục tiêu','EDA và đánh giá quy trình sửa lỗi'],['Cơ chế sinh','Danh mục + dòng bán + lỗi có nhãn'],['Đối tượng đánh giá',f'Dòng giữ lại và toàn bộ {f(p["n_lines"])} dòng chuẩn'],['Phương pháp','Chuẩn hóa, tra danh mục, cách ly xung đột'],['Tiêu chí','Khớp trường, tỷ lệ giữ, sai lệch tổng, MCSE']],
@@ -122,14 +132,14 @@ def build_sections(root,d,t,m,v,stages,exp,recovery,raw=None,missing=None,famili
         f'Thể loại được chọn theo trọng số [{"; ".join(f(w,2) for w in p["genre_weights"])}] theo thứ tự trong config.py. Kênh Sàn A/B/C, Cửa hàng, Website có trọng số [{"; ".join(f(w,2) for w in p["channel_weights"])}]. Các giá trị là giả định thiết kế, chưa hiệu chỉnh theo dữ liệu thực.',
         f'Ngày bán được chọn đều trên {f(ndays)} ngày của 2024–2025. Giảm giá niêm yết chọn đều từ {{0,5,…,40}}% cho ba sàn và {{0,5,…,20}}% cho hai kênh còn lại. Giá bán làm tròn đến nghìn từ giá gốc và giảm giá; tỷ lệ giảm thực tế được tính riêng để không nhầm với mức niêm yết.',
         f'Số cuốn = 1 + Poisson(λ), trong đó λ = {f(p["lam_base"],1)} × S × max(0,5; 1,8 − giá_bán/{f(p["lam_price_scale"])}) × (1 + β × giảm_giá_niêm_yết/30). Cơ sở: β=1; S={f(p["season_peak"],1)} tháng 11–12, S={f(p["season_shoulder"],1)} tháng 8–9, còn lại S=1. {f(p["n_bulk"]).capitalize()} dòng mua số lượng lớn {f(p["bulk_qty_min"])}–{f(p["bulk_qty_max"])} cuốn được thêm độc lập để kiểm tra xử lý ngoại lệ. Đây không phải mô hình đã được xác thực dự báo kinh doanh.',
-        'Tính truy xuất: catalog.csv là danh mục nghiệp vụ đầu vào; ground_truth.csv chỉ dành cho đánh giá. injected_errors.csv mô tả lỗi đã cài; hàm làm sạch không đọc hai tệp kiểm chứng này. SHA-256 của tệp đầu ra được lưu trong manifest.json. Việc ghi metadata và nguồn gốc tham khảo nguyên tắc tái sử dụng dữ liệu [2].'
+        'Tính truy xuất: catalog.csv là danh mục nghiệp vụ đầu vào; ground_truth.csv chỉ dành cho đánh giá. injected_errors.csv mô tả lỗi đã cài; hàm làm sạch không đọc hai tệp kiểm chứng này. SHA-256 của tệp đầu ra được lưu trong manifest.json. Việc ghi metadata và nguồn gốc tham khảo nguyên tắc tái sử dụng dữ liệu (GO FAIR Foundation, n.d.).'
     ])
     section('3. Quy trình làm sạch và quyết định xử lý',[
         'Bước 1: ghi nhận số dòng, thiếu và khóa lặp. Bước 2: chuẩn hóa khoảng trắng, thể loại, kiểu số và tiền tệ. Giá âm/thiếu được phục hồi từ giá gốc và giảm giá niêm yết, sử dụng cùng quy tắc làm tròn nghìn của hệ thống giả lập. Cách sửa này chỉ hợp lệ nếu hai trường cơ sở đáng tin.',
         'Các thuộc tính sách thiếu được tra bằng ma_sach trong catalog.csv, một đầu vào độc lập với nhãn lỗi. Bài giả định danh mục đã kiểm tra và bao phủ đủ mã trong kịch bản chính; giả định mạnh này làm bài toán phục hồi dễ hơn thực tế. Nếu không có dữ liệu tra, giữ điểm/năm ở trạng thái thiếu và gắn nhãn không rõ cho tên tác giả/NXB, không tự suy đoán thông tin thư mục.',
         'Bước 3: gộp các bản sao có cùng mã dòng và cùng nội dung sau chuẩn hóa. Nếu cùng mã nhưng khác dữ liệu, cách ly tất cả biến thể để xác minh. Không dùng tên sách/ngày/kênh làm khóa thay thế vì các giao dịch độc lập có thể trùng thuộc tính.',
-        f'Bước 4: cách ly số lượng không dương, không nguyên hoặc trên {f(p["max_qty_review"])}, ngày sai, miền giá trị sai. Ngưỡng {f(p["max_qty_review"])} là quy tắc cần rà soát trong kịch bản, không phải quy luật bán lẻ. Điểm vượt Q3+1,5×IQR chỉ được đánh dấu, không tự xóa [3]; nhờ vậy các dòng mua nhiều vẫn được giữ nếu hợp lệ.',
-        'Tạo đặc trưng dùng một hàm chung: giá <80.000; 80.000≤giá≤200.000; giá>200.000. Điểm: <3,0; [3,0;4,0); [4,0;4,5); ≥4,5; thiếu thành Chưa biết. Quy ước biên được kiểm tra riêng vì pandas.cut mặc định đóng khoảng bên phải [4]. Nhật ký cell_changes ghi thay đổi ô; row_lineage cho biết trạng thái của từng dòng thô.',
+        f'Bước 4: cách ly số lượng không dương, không nguyên hoặc trên {f(p["max_qty_review"])}, ngày sai, miền giá trị sai. Ngưỡng {f(p["max_qty_review"])} là quy tắc cần rà soát trong kịch bản, không phải quy luật bán lẻ. Điểm vượt Q3+1,5×IQR chỉ được đánh dấu, không tự xóa (NIST/SEMATECH, 2012); nhờ vậy các dòng mua nhiều vẫn được giữ nếu hợp lệ.',
+        'Tạo đặc trưng dùng một hàm chung: giá <80.000; 80.000≤giá≤200.000; giá>200.000. Điểm: <3,0; [3,0;4,0); [4,0;4,5); ≥4,5; thiếu thành Chưa biết. Quy ước biên được kiểm tra riêng vì pandas.cut mặc định đóng khoảng bên phải (The pandas development team, 2024). Nhật ký cell_changes ghi thay đổi ô; row_lineage cho biết trạng thái của từng dòng thô.',
         '[[Bảng:3.2 Quy trình làm sạch]] trình bày số dòng, số ô thiếu và số mã dòng lặp sau từng bước; cột ô thiếu cho thấy dữ liệu thiếu được khôi phục hoặc cách ly ở bước nào.',
     ],table=[['Bước','Dòng','Ô thiếu','Mã dòng lặp']]+[[r.buoc.split('. ',1)[-1],f(r.so_dong),f(r.o_thieu),f(r.ma_dong_lap)] for r in stages.itertuples()],
       caption='Số dòng, ô thiếu và mã dòng lặp qua từng bước làm sạch')
@@ -248,7 +258,7 @@ def build_sections(root,d,t,m,v,stages,exp,recovery,raw=None,missing=None,famili
         'Trách nhiệm nhóm: điền thông tin học phần, thành viên và đóng góp có thật; đọc và chạy lại notebook; có thể giải thích các giả định và giới hạn; khai báo hỗ trợ AI theo yêu cầu của lớp. Bản này không xác nhận một khảo sát doanh nghiệp hoặc thu thập thị trường chưa từng diễn ra.'
     ])
     section('Tài liệu tham khảo và chỉ dẫn tái lập',[
-        *[f'[{i}] {title} {url} (Truy cập 08/11/2026).' for i,(title,url) in enumerate(SOURCES,1)],
+        *[title for title,url in SOURCES],
         'Nguồn sơ cấp của mọi con số mới: data/processed/book_sales_clean.csv, results/*.csv và results/metrics.json. Mã sinh và nhãn lỗi: src/data_generator.py, data/reference/ground_truth.csv, data/audit/injected_errors.csv. Nguồn cũ để truy xuất thay đổi: Kohaku1709/Kinh-doanh-sach-, commit 6bfe691904b4d721ee1a1743509f6b581b70ce81; các kết quả cũ không được sử dụng như số liệu của bản nghiên cứu mới.',
         'Tái lập: Python 3.11 trở lên (CI kiểm tra 3.11, 3.12 và 3.13); cài requirements.txt (hoặc requirements-lock.txt để dùng toàn bộ phiên bản đã kiểm thử); chạy python run.py --replications 50; chạy python -m pytest -q; chạy python tools/execute_notebook.py. Notebook đọc dữ liệu nguồn và gọi chung hàm xử lý, sau đó đối soát với CSV được pipeline xuất.',
         'README.md là điểm bắt đầu; docs/QUY-TRINH.md mô tả phương pháp; data/data_dictionary.md định nghĩa trường; docs/DOI-SOAT-BAN-CU.md lưu các số tính lại từ bản gốc; docs/PHAN-VIEC-NHOM.md ghi phần công việc cần nhóm cung cấp. Các nguồn phương pháp trên không chứng minh tính đại diện của dữ liệu.'

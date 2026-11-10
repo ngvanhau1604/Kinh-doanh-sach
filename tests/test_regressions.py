@@ -442,3 +442,41 @@ def test_null_band_and_observed_value_use_the_same_book_grouping(bundle):
     one = null_band(n_seeds=1)
     assert 'rating_book_qty_r' in one.columns
     assert null['rating_book_qty_r'].notna().all()
+
+
+# --- APA citation integrity ----------------------------------------------------------------
+
+def test_every_reference_is_cited_and_every_citation_has_a_reference():
+    """APA is author-date, so a numeric marker anywhere in the text means the conversion was
+    incomplete, and a reference nobody cites is a reference that should not be in the list."""
+    import re
+    from src.report_builder import SOURCES
+
+    text = (ROOT / 'report/bao_cao.md').read_text(encoding='utf8')
+    body, _, refs = text.partition('# Tài liệu tham khảo và chỉ dẫn tái lập')
+
+    assert not re.search(r'\[\d\]', body), 'numeric citation marker left in the body'
+
+    # Each reference must appear verbatim in the reference section.
+    for title, _url in SOURCES:
+        assert title in refs, title[:60]
+
+    # Each in-text citation must correspond to a reference entry.
+    keys = {
+        'Morris và cộng sự, 2019': 'Morris, T. P.',
+        'GO FAIR Foundation, n.d.': 'GO FAIR Foundation',
+        'NIST/SEMATECH, 2012': 'NIST/SEMATECH',
+        'The pandas development team, 2024': 'The pandas development team',
+    }
+    for in_text, ref_start in keys.items():
+        if in_text in body:
+            assert ref_start in refs, in_text
+
+
+def test_cover_placeholders_are_marked_not_invented():
+    """The template cannot know the institution or the members. Every such field must be an
+    explicit placeholder rather than a plausible-looking guess."""
+    text = (ROOT / 'report/bao_cao.md').read_text(encoding='utf8')
+    for field in ['TRƯỜNG:', 'KHOA/BỘ MÔN:', 'HỌC PHẦN:', 'GIẢNG VIÊN HƯỚNG DẪN:', 'NHÓM THỰC HIỆN:']:
+        assert field in text, field
+    assert text.count('[CẦN ĐIỀN') >= 6
