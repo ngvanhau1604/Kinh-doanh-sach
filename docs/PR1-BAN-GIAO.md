@@ -1,10 +1,21 @@
 # PR1 — Báo cáo bàn giao
 
 **Nhánh:** `fix/reproducibility-and-tests` (từ `main` @ `ef2b543`)
-**Commit:** `4ead4f6`, `64682c3`, `1352203`, `44c02d3`, và commit bàn giao lần này
-**Trạng thái:** đã push, **CI 12/12 xanh**, chờ chuyển Ready và squash merge.
+**Commit:** `4ead4f6`, `64682c3`, `1352203`, `44c02d3`, `fbdd8fa`, `213c3bf`
+**Trạng thái:** đã push, **CI 12/12 xanh** trên cả hai lần chạy (6 job × 2 sự kiện: Python 3.11/3.12/3.13 trên ubuntu-latest và windows-latest), sẵn sàng squash merge.
 **Remote:** `https://github.com/ngvanhau1604/Kinh-doanh-sach.git`
 **`main` không bị sửa** trong suốt quá trình này.
+
+### Ghi chú về lần chạy CI đầu tiên (đã sửa)
+
+Lần chạy đầu của PR1 báo đỏ 12/12, không phải vì phân tích sai mà vì hai lỗi hạ tầng. Ghi lại vì cả hai đều là bài học về tính tái lập:
+
+1. `?? .ci-out/` làm bước "working tree clean" thất bại. Bước smoke run ghi đầu ra vào `.ci-out/` và không có gì bỏ qua thư mục đó. Đã thêm vào `.gitignore`.
+2. `--check` báo "Notebook outputs are stale" trên ubuntu-latest với một notebook giống hệt từng byte trên Windows. Nguyên nhân: so sánh byte tuyệt đối, trong khi PNG nhúng do bản matplotlib/freetype cục bộ render, nên cùng một hình cho ra byte khác nhau giữa Linux và Windows. Một phép so sánh byte không thể đúng across-platform.
+
+Cách sửa: `--check` nay so sánh những gì người đọc kiểm chứng được — số ô và thứ tự, source từng ô, execution count, văn bản từng output, và sự hiện diện cùng loại của từng hình. Byte của hình không được so sánh vì nó không phải thuộc tính của phân tích. Notebook cũng render hình vào thư mục tạm thay vì `charts/`, nên chạy lại không thể làm bẩn cây làm việc trên bất kỳ nền tảng nào.
+
+Đây là giới hạn tái lập byte cần nêu rõ: **văn bản và cấu trúc tái lập chính xác; hình ảnh tái lập theo nội dung, không theo byte, và phụ thuộc môi trường render.**
 
 ---
 
