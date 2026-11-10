@@ -53,31 +53,99 @@
     "lam_base": 1.5,
     "lam_price_scale": 200000,
     "season_peak": 1.7,
-    "season_shoulder": 1.3
+    "season_shoulder": 1.3,
+    "null_seeds": 200,
+    "missing_seeds": 100,
+    "boot": 2000
   },
   "metrics": {
-    "lines": 6480,
-    "books": 300,
-    "orders": 6480,
-    "revenue": 2969430000,
-    "quantity": 30790,
-    "average_unit_price": 96441.37707,
-    "yoy_pct": -1.305081,
-    "rating_qty_r": 0.009119,
-    "rating_book_qty_r": 0.117233,
-    "discount_qty_r": 0.172954,
-    "rating_known": 6480,
-    "good_rating_pct": 74.182099,
-    "iqr_flags": 179
+    "lines": 6478,
+    "books": 301,
+    "orders": 6478,
+    "revenue": 3067680000,
+    "quantity": 32100,
+    "average_unit_price": 95566.35514,
+    "yoy_pct": -4.008783,
+    "rating_qty_r": 0.011782,
+    "rating_book_qty_r": 0.105456,
+    "discount_qty_r": 0.098204,
+    "rating_known": 6478,
+    "good_rating_pct": 74.220438,
+    "iqr_flags": 184
   },
   "validation": {
     "truth_revenue": 2978555000,
-    "clean_revenue": 2969430000,
-    "relative_revenue_error_pct": -0.306357,
-    "retained_pct": 99.692308,
+    "clean_revenue": 3067680000,
+    "relative_revenue_error_pct": 2.992223,
+    "retained_pct": 99.661538,
     "quarantine_precision": 1.0,
-    "quarantine_recall": 1.0,
-    "retained_revenue_error": 0,
+    "quarantine_recall": 0.02138,
+    "retained_revenue_error": 99657000,
     "unresolved_missing": 0
+  },
+  "error_families": {
+    "n_cai": 49,
+    "n_cach_ly": 17,
+    "n_danh_dau": 6,
+    "recall": 0.469388,
+    "con_sai": 32
+  },
+  "bootstrap": {
+    "revenue": {
+      "point": 3067680000.0,
+      "ci_low": 2933079950.0,
+      "ci_high": 3229478275.0,
+      "unit": "dòng bán hàng",
+      "n_boot": 2000
+    },
+    "average_unit_price": {
+      "point": 95566.35514,
+      "ci_low": 93324.664787,
+      "ci_high": 97579.64581,
+      "unit": "dòng bán hàng",
+      "n_boot": 2000
+    },
+    "rating_qty_r": {
+      "point": 0.011782,
+      "ci_low": -0.003747,
+      "ci_high": 0.028783,
+      "unit": "dòng bán hàng",
+      "n_boot": 2000
+    },
+    "rating_book_qty_r": {
+      "point": 0.105456,
+      "ci_low": 0.023809,
+      "ci_high": 0.192921,
+      "unit": "đầu sách",
+      "n_boot": 2000
+    },
+    "discount_qty_r": {
+      "point": 0.098204,
+      "ci_low": 0.064691,
+      "ci_high": 0.209304,
+      "unit": "dòng bán hàng",
+      "n_boot": 2000
+    },
+    "q4_share": {
+      "point": 30.820588,
+      "ci_low": 28.268344,
+      "ci_high": 33.956184,
+      "unit": "dòng bán hàng",
+      "n_boot": 2000
+    },
+    "marketplace_share": {
+      "point": 75.23226,
+      "ci_low": 72.948912,
+      "ci_high": 77.373038,
+      "unit": "dòng bán hàng",
+      "n_boot": 2000
+    },
+    "digital_channel_share": {
+      "point": 84.654821,
+      "ci_low": 82.452962,
+      "ci_high": 86.604647,
+      "unit": "dòng bán hàng",
+      "n_boot": 2000
+    }
   }
 }

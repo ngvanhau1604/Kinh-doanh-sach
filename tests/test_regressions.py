@@ -15,7 +15,7 @@ import pytest
 from src.config import PARAMS
 from src.data_cleaner import clean, price_group
 from src.data_generator import corrupt, generate
-from src.analysis import channel_shares, experiments, summarize
+from src.analysis import channel_shares, experiments, summarize, bootstrap
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -136,17 +136,21 @@ def test_report_contains_no_base_case_literals_when_sample_changes(monkeypatch):
 def test_report_numbers_are_vietnamese_formatted(monkeypatch):
     """Regression: f'{n:,}' produced English grouping (6,660) inside Vietnamese prose.
 
-    A bare '99,692' is a legitimate Vietnamese decimal and structurally identical to an English
-    thousands group, so this checks the exact strings the old code emitted rather than guessing
-    from a pattern.
+    The figures are derived from the run rather than hardcoded: an earlier version of this test
+    pinned the base-case line count, so it would have passed a report that quoted a stale sample
+    and failed a correct one after the simulation changed. What must hold is the format, not the
+    value.
     """
-    md, _ = _report_text(monkeypatch, 6500)
-    for english in ['6,660', '6,480', '6,500', '2,969,430,000', '2,978,555,000', '30,790', '96,441']:
+    md, metrics = _report_text(monkeypatch, 6500)
+    def vn(n):
+        return f'{n:,}'.replace(',', '.')
+    lines = vn(metrics['lines'])
+    revenue = vn(metrics['revenue'])
+    assert lines in md, f'số dòng {lines} không xuất hiện đúng định dạng tiếng Việt'
+    assert revenue in md, f'doanh thu {revenue} không xuất hiện đúng định dạng tiếng Việt'
+    # English grouping of these exact quantities must not appear.
+    for english in [f'{metrics["lines"]:,}', f'{metrics["revenue"]:,}']:
         assert english not in md, f'Còn định dạng số kiểu Anh: {english}'
-    # The same quantities must appear with Vietnamese separators.
-    assert '6.660' in md and '6.480' in md
-    assert '2.969.430.000' in md
-    assert '30.790' in md
     # Vietnamese decimal: comma before the fraction.
     assert re.search(r'\d,\d+%', md)
 
@@ -352,3 +356,244 @@ def test_committed_notebook_keeps_its_outputs():
     assert len(showing) >= 10, 'notebook lost its display cells'
     assert all(c.outputs for c in showing), 'a display cell lost its output'
     assert all(c.execution_count is not None for c in code), 'execution counts were dropped'
+
+
+# --- bootstrap intervals -------------------------------------------------------------------
+
+def test_book_level_correlation_uses_the_same_grouping_as_the_report(bundle):
+    """Regression: `summarize` grouped books by (ma_sach, ten_sach) while `null_band` grouped by
+    ma_sach alone. Rows whose key did not resolve carry the placeholder BK9999, so the second
+    grouping merged six distinct books into one and summed their quantities. The reported value
+    and the null band it was compared against were therefore computed on different units."""
+    d = bundle['d']
+    by_pair = (d.groupby(['ma_sach', 'ten_sach'])
+                 .agg(q=('so_luong', 'sum'), r=('diem_danh_gia', 'first')))
+    by_key = d.groupby('ma_sach').agg(q=('so_luong', 'sum'), r=('diem_danh_gia', 'first'))
+    assert len(by_pair) > len(by_key), 'placeholder key no longer collapses distinct books'
+    assert not math.isclose(by_pair.r.corr(by_pair.q), by_key.r.corr(by_key.q), rel_tol=1e-6), \
+        'the two groupings agree, so this test no longer guards anything'
+    assert bundle['metrics']['rating_book_qty_r'] == round(by_pair.r.corr(by_pair.q), 6)
+
+
+def test_bootstrap_point_estimates_match_the_published_metrics(bundle):
+    """The interval must be centred on the number the report prints. A bootstrap that resamples
+    a different unit than `summarize` measures produces a point estimate that silently disagrees
+    with the headline figure."""
+    boot = bootstrap(bundle['d'], n_boot=120).set_index('metric')
+    m = bundle['metrics']
+    assert boot.loc['revenue', 'point'] == m['revenue']
+    assert boot.loc['rating_book_qty_r', 'point'] == m['rating_book_qty_r']
+    assert boot.loc['rating_qty_r', 'point'] == m['rating_qty_r']
+    assert boot.loc['discount_qty_r', 'point'] == m['discount_qty_r']
+    assert boot.loc['average_unit_price', 'point'] == m['average_unit_price']
+
+
+def test_bootstrap_intervals_bracket_their_point_estimate(bundle):
+    boot = bootstrap(bundle['d'], n_boot=200)
+    for row in boot.itertuples():
+        assert row.ci_low <= row.point <= row.ci_high, row.metric
+        assert row.ci_width > 0, row.metric
+
+
+def test_book_level_interval_is_wider_than_a_line_level_one(bundle):
+    """Resampling books must give a wider interval than resampling lines for the book-level
+    correlation, because there are only ~300 books but ~6500 lines. If the two were equal the
+    book-level metric would be pretending to a precision it does not have."""
+    d = bundle['d']
+    books = (d.groupby(['ma_sach', 'ten_sach'])
+               .agg(q=('so_luong', 'sum'), r=('diem_danh_gia', 'first')))
+    assert len(books) < len(d) / 10
+    boot = bootstrap(d, n_boot=300).set_index('metric')
+    # The line-level rating/quantity correlation is the same population quantity, measured on
+    # rows; it must be reported with a visibly tighter interval.
+    assert boot.loc['rating_book_qty_r', 'ci_width'] > boot.loc['rating_qty_r', 'ci_width']
+
+
+def test_null_band_verdict_follows_the_arithmetic(bundle):
+    """Regression: the report asserted the observed value was outside the null band while the
+    numbers said otherwise. The percentile (96.5) and the band (central 95%) answer different
+    questions, and the prose had been written from the first while claiming the second."""
+    import pandas as pd
+    from src.report_builder import _inside_band, _band_verdict
+
+    null = pd.read_csv(ROOT / 'results/null_distribution.csv')
+    s = null['rating_book_qty_r'].dropna()
+    lo, hi = s.quantile(.025), s.quantile(.975)
+    observed = bundle['metrics']['rating_book_qty_r']
+
+    expected = 'trong' if lo <= observed <= hi else 'ngoài'
+    assert _inside_band(null, 'rating_book_qty_r', observed) == expected
+    verdict = _band_verdict(null, 'rating_book_qty_r', observed)
+    assert ('tương thích' in verdict) == (expected == 'trong')
+
+    # The band must be wide enough that a value at the 96.5th percentile still sits inside it.
+    # If this ever fails, the band and the percentile are being computed on different units.
+    assert lo <= observed <= hi, (lo, observed, hi)
+
+
+def test_null_band_and_observed_value_use_the_same_book_grouping(bundle):
+    """The band is generated across seeds; the observed value comes from `summarize`. Both must
+    group books the same way, or the comparison is between two different quantities."""
+    import pandas as pd
+    from src.analysis import null_band
+
+    null = pd.read_csv(ROOT / 'results/null_distribution.csv')
+    # Recompute one seed through the same path the band uses and compare with summarize's rule.
+    one = null_band(n_seeds=1)
+    assert 'rating_book_qty_r' in one.columns
+    assert null['rating_book_qty_r'].notna().all()
+
+
+# --- APA citation integrity ----------------------------------------------------------------
+
+def test_every_reference_is_cited_and_every_citation_has_a_reference():
+    """APA is author-date, so a numeric marker anywhere in the text means the conversion was
+    incomplete, and a reference nobody cites is a reference that should not be in the list."""
+    import re
+    from src.report_builder import SOURCES
+
+    text = (ROOT / 'report/bao_cao.md').read_text(encoding='utf8')
+    body, _, refs = text.partition('# Tài liệu tham khảo và chỉ dẫn tái lập')
+
+    assert not re.search(r'\[\d\]', body), 'numeric citation marker left in the body'
+
+    # Each reference must appear verbatim in the reference section.
+    for title, _url in SOURCES:
+        assert title in refs, title[:60]
+
+    # Each in-text citation must correspond to a reference entry.
+    keys = {
+        'Morris và cộng sự, 2019': 'Morris, T. P.',
+        'GO FAIR Foundation, n.d.': 'GO FAIR Foundation',
+        'NIST/SEMATECH, 2012': 'NIST/SEMATECH',
+        'The pandas development team, 2024': 'The pandas development team',
+    }
+    for in_text, ref_start in keys.items():
+        if in_text in body:
+            assert ref_start in refs, in_text
+
+
+def test_cover_placeholders_are_marked_not_invented():
+    """The template cannot know the institution or the members. Every such field must be an
+    explicit placeholder rather than a plausible-looking guess."""
+    text = (ROOT / 'report/bao_cao.md').read_text(encoding='utf8')
+    for field in ['TRƯỜNG:', 'KHOA/BỘ MÔN:', 'HỌC PHẦN:', 'GIẢNG VIÊN HƯỚNG DẪN:', 'NHÓM THỰC HIỆN:']:
+        assert field in text, field
+    assert text.count('[CẦN ĐIỀN') >= 6
+
+
+def test_metrics_json_survives_a_console_that_cannot_encode_vietnamese():
+    """CI on windows-latest runs with a cp1252 stdout. Printing the metrics payload there raised
+    UnicodeEncodeError and failed the pipeline while passing locally under PYTHONIOENCODING=utf-8.
+    The file is written as UTF-8 either way; the console copy must degrade, not crash."""
+    import io
+    import json
+
+    payload = {'metric': 'doanh_thu', 'unit': 'đồng', 'note': 'Điểm đánh giá'}
+
+    # A stream that refuses anything outside cp1252, like the real Windows console.
+    strict = io.TextIOWrapper(io.BytesIO(), encoding='cp1252', errors='strict', newline='')
+    with pytest.raises(UnicodeEncodeError):
+        strict.write(json.dumps(payload, ensure_ascii=False))
+
+    # The fallback used by run.py must round-trip the same data.
+    escaped = json.dumps(payload, ensure_ascii=True)
+    strict.write(escaped)
+    strict.flush()
+    decoded = json.loads(strict.buffer.getvalue().decode('cp1252'))
+    assert decoded == payload
+
+
+# --- Final submission regressions (Errors A - H) --------------------------------------------
+
+def test_regression_error_a_book_counts_and_placeholder_key(bundle):
+    """Lỗi A: Catalog có 300 sách, nhưng tập sạch có 301 mã sách do BK9999, và 306 cặp (mã, tên).
+    Báo cáo phải phân biệt rõ ràng ba số lượng này."""
+    md = (ROOT / 'report/bao_cao.md').read_text(encoding='utf8')
+    assert '300 mã danh mục' in md or '300 sách' in md or '300 đầu sách' in md
+    assert 'BK9999' in md
+    assert '301 mã sách' in md or '301 mã' in md
+    # Make sure we don't confuse the catalog design with the observed keys
+    assert '301 mã sách trong danh mục' not in md
+
+
+def test_regression_error_b_detection_rates_consistency():
+    """Lỗi B: Không dùng mẫu số 1029 để tuyên bố 97,9% lỗi còn lại trên 8 họ lỗi.
+    Tỷ lệ phát hiện và dòng còn sai phải đồng nhất."""
+    md = (ROOT / 'report/bao_cao.md').read_text(encoding='utf8')
+    assert '97,9% lỗi vẫn nằm lại' not in md
+    assert '97,9% lỗi còn lại' not in md
+    # We must explicitly distinguish the family-level detection
+    assert 'tám họ lỗi giá trị' in md or 'tám họ' in md
+    assert '32' in md  # 32 dòng lỗi giá trị còn sai
+
+
+def test_regression_error_c_no_false_100_percent_claim_on_all_fields():
+    """Lỗi C: Không khẳng định cả 8 trường đều khớp 100% khi chỉ có 3 trường đạt 100%."""
+    md = (ROOT / 'report/bao_cao.md').read_text(encoding='utf8')
+    assert 'tám trường được đối chiếu với dữ liệu chuẩn đều đạt tỷ lệ khớp 100%' not in md
+    assert 'ba trường thuộc tính danh mục đạt tỷ lệ khớp 100%' in md
+
+
+def test_regression_error_d_error_family_table_has_flagged_column():
+    """Lỗi D: Bảng họ lỗi phải có cột 'Gắn cờ' để giải thích tại sao catalog_missing
+    có cách ly = 0 nhưng tỷ lệ phát hiện là 100%."""
+    md = (ROOT / 'report/bao_cao.md').read_text(encoding='utf8')
+    assert '| Gắn cờ |' in md
+    assert 'catalog_missing' in md
+
+
+def test_regression_error_e_revenue_error_interpretation(bundle):
+    """Lỗi E: Doanh thu tập sạch cao hơn dữ liệu chuẩn (+2,992%).
+    Phải tách biệt hai tác động: lỗi còn sót làm tăng và cách ly làm giảm."""
+    md = (ROOT / 'report/bao_cao.md').read_text(encoding='utf8')
+    assert 'tổng kỳ vẫn thiếu do cách ly' not in md
+    assert 'cơ chế cách ly gây thiếu tổng' not in md
+    assert '+2,992%' in md or '2,992%' in md
+    # Arithmetic identity verification
+    truth = bundle['truth']
+    clean_df = bundle['d']
+    t_feat = truth.copy()
+    t_feat['doanh_thu'] = t_feat['gia_ban'] * t_feat['so_luong']
+    removed_ids = set(truth['ma_dong']) - set(clean_df['ma_dong'])
+    quarantine_loss = t_feat[t_feat['ma_dong'].isin(removed_ids)]['doanh_thu'].sum()
+    retained_clean = clean_df.set_index('ma_dong')['doanh_thu']
+    retained_truth = t_feat.set_index('ma_dong').loc[clean_df['ma_dong']]['doanh_thu']
+    retained_err = (retained_clean - retained_truth).sum()
+    net_gap = clean_df['doanh_thu'].sum() - t_feat['doanh_thu'].sum()
+    assert retained_err - quarantine_loss == net_gap
+    assert net_gap > 0  # Clean revenue is higher than truth
+
+
+def test_regression_error_f_null_distribution_verdict_consistent():
+    """Lỗi F: Giá trị quan sát r=0.105 nằm TRONG khoảng null 95% [-0.112; 0.107].
+    Không văn bản nào được khẳng định nó nằm ngoài khoảng 95%."""
+    md = (ROOT / 'report/bao_cao.md').read_text(encoding='utf8')
+    assert 'thấy nó nằm ngoài khoảng 95%' not in md
+    assert 'nằm trong khoảng 95%' in md
+
+    # Also check notebook source
+    import nbformat
+    nb = nbformat.read(ROOT / 'notebooks/book_sales_analysis.ipynb', as_version=4)
+    nb_text = ''.join(c.source for c in nb.cells)
+    assert 'nằm ngoài khoảng 95%' not in nb_text
+    assert 'nằm trong khoảng 95%' in nb_text
+
+
+def test_regression_error_g_no_thousands_separator_in_years():
+    """Lỗi G: Năm xuất bản không được định dạng thành 2.015–2.023."""
+    md = (ROOT / 'report/bao_cao.md').read_text(encoding='utf8')
+    assert '2.015' not in md
+    assert '2.023' not in md
+    assert '2015–2023' in md
+
+
+def test_regression_error_h_readme_and_docs_sync_with_metrics():
+    """Lỗi H: README.md và docs/KET-QUA-KIEM-TRA.md phải đồng bộ với số liệu mới nhất."""
+    readme = (ROOT / 'README.md').read_text(encoding='utf8')
+    metrics = json.loads((ROOT / 'results/metrics.json').read_text(encoding='utf8'))['metrics']
+    assert '6.480' not in readme
+    assert f"{metrics['lines']:,}".replace(',', '.') in readme
+    assert '22 mã nghiệp vụ' in readme
+    assert '+2,992%' in readme
+

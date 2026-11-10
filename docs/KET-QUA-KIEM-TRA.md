@@ -7,8 +7,8 @@ Ngày kiểm tra: 08/11/2026. Đây là kiểm tra cục bộ bằng công cụ 
 | Môi trường mới | Tạo môi trường Python 3.12 riêng, cài thư viện; `pip check` không phát hiện phụ thuộc hỏng. Phiên bản trong requirements-lock.txt. |
 | Bộ kiểm tra dữ liệu | 18 kiểm tra qua; gồm biên giá/điểm, tiền tệ, xung đột khóa, nguồn thiếu catalog, dòng mua nhiều, miền giá trị, tái lập và tổng theo nhóm. |
 | Pipeline đầy đủ | Đã chạy sinh dữ liệu → làm sạch → bảng → 150 lượt mô phỏng → 8 hình → dashboard → báo cáo. |
-| Kịch bản cơ sở | 6.500 mã dòng chuẩn, 6.660 dòng thô, 6.480 dòng sạch; 25 biến thể bị cách ly tương ứng 20 mã nghiệp vụ. |
-| Khớp giá trị | 8 trường được kiểm tra khớp 6.480/6.480 dòng giữ lại; tổng kỳ thấp hơn truth 0,3063566% do dữ liệu cách ly. |
+| Kịch bản cơ sở | 6.500 mã dòng chuẩn, 6.660 dòng thô, 6.478 dòng sạch; 27 biến thể bị cách ly tương ứng 22 mã nghiệp vụ. |
+| Khớp giá trị | 3 trường danh mục khớp 100%, 5 trường giao dịch khớp 99,75%–99,98%; tổng kỳ chênh lệch +2,992% so với truth do lỗi còn sót (+99.657.000 đ) và cách ly (10.532.000 đ). |
 | Nhật ký dòng | Mỗi trong 6.660 raw_row_id có đúng một trạng thái cuối. |
 | Mô phỏng lặp | 3 kịch bản × 50 seed (100–149); có kết quả từng lượt và SD/MCSE/phân vị. |
 | Notebook | Chạy kernel mới, 15 ô mã hoàn thành; dữ liệu sạch và KPI khớp pipeline, không lỗi thực thi. |

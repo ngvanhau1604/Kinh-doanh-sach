@@ -22,13 +22,49 @@ def test_boundaries():
 def test_price_formats(value,expected):assert parse_price(value)==expected
 
 def test_known_truth_recovery(bundle):
+    """Recovery is now a measured quantity, not a perfect score.
+
+    The old assertion required every retained field to match the truth exactly, which was only
+    possible because every injected defect sat outside its legal domain. Families that produce a
+    legal but wrong value (price reset, price swap, date swap, genre mislabel) survive cleaning by
+    design, so a 100% match rate would mean the defect set had been made trivial again.
+    """
     cat,t,r,e,d,s,q,c,l=bundle
     matches,v=evaluate(t,d,r,e)
-    assert matches.ty_le_khop.eq(1).all()
-    assert v['retained_revenue_error']==0
-    assert v['quarantine_precision']==v['quarantine_recall']==1
-    assert len(d)==len(t)-20
+    # Rows flagged as outside the catalog have no verifiable description by design, so the
+    # exactness check applies to the rows whose description the catalog can confirm.
+    verifiable=d.loc[~d.ma_sach_ngoai_danh_muc.astype(bool)]
+    tv=t[t.ma_dong.isin(verifiable.ma_dong)]
+    mv,_=evaluate(tv,verifiable,r,r.iloc[:0].assign(ho_loi=pd.Series(dtype=object)))
+    exact={'diem_danh_gia','nam_xuat_ban','nha_xuat_ban'}
+    for row in mv.itertuples():
+        if row.cot in exact:
+            assert row.ty_le_khop==1, f'{row.cot} should match the truth exactly'
+    # Every other field must at least be overwhelmingly correct, and the shortfall must be
+    # attributable to the undetectable families rather than to a broken rule.
+    assert matches.ty_le_khop.min()>0.99
+    assert v['quarantine_precision']==1
+    assert 0<v['quarantine_recall']<1
     assert not d.ma_dong.duplicated().any()
+
+def test_undetectable_families_are_reported_not_hidden(bundle):
+    """The families a range check cannot see must show up as surviving errors, not as recall."""
+    from src.analysis import error_family_performance
+    cat,t,r,e,d,s,q,c,l=bundle
+    fam=error_family_performance(t,d,r,e).set_index('ho_loi')
+    for family in ['price_reset','genre_mislabel']:
+        assert fam.loc[family,'phat_hien_duoc']=='no'
+        assert fam.loc[family,'recall']==0
+        assert fam.loc[family,'con_sai']>0
+    for family in ['qty_negative','qty_fractional']:
+        assert fam.loc[family,'recall']==1
+        assert fam.loc[family,'con_sai']==0
+    # A missing catalog record is detected by a flag, not by removal: the row's own price and
+    # quantity are still valid, so its revenue must stay in the analysis.
+    assert fam.loc['catalog_missing','recall']==1
+    assert fam.loc['catalog_missing','n_cach_ly']==0
+    assert fam.loc['catalog_missing','n_danh_dau']>0
+    assert fam.attrs['aggregate']['recall']<1
 
 def test_no_unaccounted_rows(bundle):
     cat,t,r,e,d,s,q,c,l=bundle
