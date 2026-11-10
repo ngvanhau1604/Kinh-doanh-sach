@@ -16,9 +16,9 @@
 
 7 câu hỏi EDA về thể loại, mã sách, thời gian, giá/giảm giá, điểm sách, tương quan và cơ cấu kênh/phân khúc. Thêm hai câu hỏi kiểm chứng: phục hồi lỗi đúng đến đâu và kết quả phụ thuộc giả định thế nào?
 
-Kịch bản cơ sở: 300 sách, 10 thể loại, 5 kênh, 6.500 đơn một đầu sách trong 2024–2025. Mỗi đơn có một dòng; đây là giới hạn mô hình, không phải mô tả chung về đơn bán lẻ. Sau thêm bản sao: 6.660 dòng thô. Quy trình giữ 6.480 dòng, cách ly 20 mã nghiệp vụ (25 biến thể nguồn). Các số mới không so trực tiếp với bản cũ vì cơ chế dữ liệu đã được thiết kế lại.
+Kịch bản cơ sở: 300 sách, 10 thể loại, 5 kênh, 6.500 đơn một đầu sách trong 2024–2025. Mỗi đơn có một dòng; đây là giới hạn mô hình, không phải mô tả chung về đơn bán lẻ. Sau thêm bản sao: 6.660 dòng thô. Quy trình giữ 6.478 dòng, ghi nhận 301 mã sách (300 mã danh mục chuẩn + mã ngoài danh mục BK9999, ứng với 306 đầu sách theo cặp mã–tên), cách ly 22 mã nghiệp vụ (27 biến thể nguồn). Các số mới không so trực tiếp với bản cũ vì cơ chế dữ liệu đã được thiết kế lại.
 
-**Kết quả chính về phương pháp:** tám trường đối chiếu khớp dữ liệu chuẩn trên các dòng giữ lại; nhưng tổng kỳ vẫn thiếu do cách ly. Kết quả này không được gọi là “sạch 100%”. Giá trị cụ thể, phần trăm sai lệch và tổng EDA được sinh tự động trong `results/metrics.json` và báo cáo, tránh chép số thủ công.
+**Kết quả chính về phương pháp:** đối chiếu tám trường trên các dòng giữ lại cho thấy 3 trường danh mục khớp 100%, 5 trường giao dịch khớp từ 99,75% đến 99,98% do một số lỗi giá trị lọt lưới; tổng giá trị bán hàng toàn kỳ chênh lệch +2,992% (+89.125.000 đồng) so với dữ liệu chuẩn do lỗi giá trị còn sót (+99.657.000 đồng) chiếm ưu thế so với phần doanh thu mất do cách ly (10.532.000 đồng). Kết quả này không được gọi là “sạch 100%”. Giá trị cụ thể, phần trăm sai lệch và tổng EDA được sinh tự động trong `results/metrics.json` và báo cáo, tránh chép số thủ công.
 
 ## Chạy lại (Windows / macOS / Linux)
 

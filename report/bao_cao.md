@@ -14,9 +14,9 @@ NƠI VÀ NĂM NỘP: [CẦN ĐIỀN ĐỊA ĐIỂM], 2026
 
 Bản nghiên cứu phục vụ học phần, ngày 08/11/2026. Thời gian được mô phỏng: 01/2024–12/2025. Tên sách, tác giả, nhà xuất bản, kênh bán và toàn bộ giao dịch đều giả lập. Không sử dụng dữ liệu giao dịch của doanh nghiệp hay khách hàng thật.
 
-Tóm tắt. Đề tài xây dựng 6.500 đơn một đầu sách từ danh mục 300 sách giả lập, chủ động thêm lỗi để tạo 6.660 dòng thô. Quy trình chuẩn hóa, đối chiếu danh mục và xử lý mã dòng thu được 6.478 dòng phân tích. Các trường được đối chiếu trên tập giữ lại khớp dữ liệu chuẩn; tuy nhiên giá trị bán hàng toàn kỳ vẫn chênh 2,992% do cách ly bản ghi. Điều này cho thấy tính đúng của từng dòng giữ lại khác với độ đầy đủ của toàn bộ dữ liệu.
+Tóm tắt. Đề tài xây dựng 6.500 đơn một đầu sách từ danh mục 300 sách giả lập, chủ động thêm lỗi để tạo 6.660 dòng thô. Quy trình chuẩn hóa, đối chiếu danh mục và xử lý mã dòng thu được 6.478 dòng phân tích, ghi nhận 301 mã sách duy nhất (gồm 300 mã thuộc danh mục chuẩn và 1 mã BK9999 cho các bản ghi ngoài danh mục, tương ứng 306 đầu sách phân biệt theo cặp mã–tên). Đối chiếu tập giữ lại cho thấy ba trường thuộc tính danh mục khớp 100% dữ liệu chuẩn, các trường giao dịch khớp từ 99,75% đến 99,98% do một số lỗi giá trị lọt lưới; giá trị bán hàng toàn kỳ chênh lệch +2,992% do tác động đồng thời của lỗi giá trị còn sót làm tăng tổng và việc cách ly giao dịch làm giảm tổng.
 
-Kết quả mô tả của kịch bản cơ sở: 3.067.680.000 đồng giá trị bán hàng, 32.100 cuốn và 301 mã sách có phát sinh bán. Ba kịch bản được lặp 50 lần để xem kết quả thay đổi khi bỏ hệ số khuyến mãi hoặc mùa vụ. Các khác biệt thu được chỉ đánh giá hành vi mô hình dưới giả định, không xác nhận quy luật thị trường Việt Nam.
+Kết quả mô tả của kịch bản cơ sở: 3.067.680.000 đồng giá trị bán hàng, 32.100 cuốn trên 301 mã sách xuất hiện trong giao dịch (300 mã danh mục và mã ngoài danh mục BK9999). Ba kịch bản được lặp 50 lần để xem kết quả thay đổi khi bỏ hệ số khuyến mãi hoặc mùa vụ. Các khác biệt thu được chỉ đánh giá hành vi mô hình dưới giả định, không xác nhận quy luật thị trường Việt Nam.
 
 Đóng góp thực hành là một quy trình có thể chạy lại: dữ liệu thô và chuẩn tách biệt; quy tắc làm sạch có nhật ký; số liệu báo cáo lấy từ bảng kết quả; biểu đồ, dashboard và notebook dùng chung hàm phân tích.
 
@@ -29,9 +29,9 @@ Bảng 1 tóm tắt các chỉ tiêu cơ sở của kịch bản chính; mọi g
 | Chỉ tiêu cơ sở | Giá trị |
 | --- | --- |
 | Dòng thô / dòng giữ lại | 6.660 / 6.478 |
-| Mã sách trong tập sạch | 301 |
+| Mã sách trong tập sạch | 301 mã (300 mã danh mục + 1 mã ngoài danh mục BK9999) |
 | Giá trị bán hàng | 3.067.680.000 đồng |
-| Sai lệch so với toàn bộ dữ liệu chuẩn | 2,992% |
+| Sai lệch so với toàn bộ dữ liệu chuẩn | +2,992% (lỗi còn sót + cách ly) |
 
 # Chương 1 Tổng quan đề tài
 
@@ -79,7 +79,7 @@ Quy trình gồm thiết kế danh mục, sinh giao dịch chuẩn, tạo bản 
 
 Nguồn trực tiếp là src/data_generator.py. Không có dữ liệu được crawl hoặc mua từ các sàn. Các danh tính đều dùng nhãn giả lập để tránh ghép sai tác giả và nhà xuất bản vào tên sách có thật. Tài liệu tham khảo cung cấp cơ sở phương pháp; không được dùng để gán tính đại diện thị trường cho các tham số.
 
-Danh mục gồm 300 mã sách, 30 mã cho mỗi thể loại. Năm xuất bản giả lập nằm trong 2.015–2.023 để luôn trước kỳ bán. Giá gốc được sinh từ phân phối log-normal với trung vị 120.000, độ lệch chuẩn log 0,48, làm tròn nghìn và chặn trong 45.000–350.000 đồng. Điểm sách = 1 + 4 × Beta(8,2), làm tròn 0,1; đây là thuộc tính giả lập cố định trước kỳ bán, không phải đánh giá tổng hợp cuối kỳ.
+Danh mục gồm 300 mã sách, 30 mã cho mỗi thể loại. Năm xuất bản giả lập nằm trong 2015–2023 để luôn trước kỳ bán. Giá gốc được sinh từ phân phối log-normal với trung vị 120.000, độ lệch chuẩn log 0,48, làm tròn nghìn và chặn trong 45.000–350.000 đồng. Điểm sách = 1 + 4 × Beta(8,2), làm tròn 0,1; đây là thuộc tính giả lập cố định trước kỳ bán, không phải đánh giá tổng hợp cuối kỳ.
 
 Thể loại được chọn theo trọng số [0,20; 0,18; 0,15; 0,13; 0,09; 0,06; 0,07; 0,04; 0,05; 0,03] theo thứ tự trong config.py. Kênh Sàn A/B/C, Cửa hàng, Website có trọng số [0,35; 0,22; 0,18; 0,15; 0,10]. Các giá trị là giả định thiết kế, chưa hiệu chỉnh theo dữ liệu thực.
 
@@ -118,15 +118,15 @@ Thứ tự làm sạch ảnh hưởng đến khả năng nhận diện bản sao
 
 # 3.3 Đánh giá chất lượng sau xử lý
 
-Trên 6.478 mã dòng giữ lại, tám trường được đối chiếu với dữ liệu chuẩn đều đạt tỷ lệ khớp 100%: giá bán, số lượng, giá trị bán hàng, điểm, năm xuất bản, tác giả, NXB và thể loại. Kết quả chỉ áp dụng cho các trường và lỗi đã thử; không có nghĩa mọi lỗi ngoài thực tế đều được xử lý đúng.
+Trên 6.478 mã dòng giữ lại, đối chiếu tám trường với dữ liệu chuẩn cho thấy ba trường thuộc tính danh mục đạt tỷ lệ khớp 100%: điểm đánh giá, năm xuất bản và nhà xuất bản. Trường tác giả đạt 99,98% (6.477/6.478), thể loại đạt 99,92% (6.473/6.478). Các trường giao dịch gồm giá bán (6.468/6.478), số lượng (6.472/6.478) và giá trị bán hàng (6.462/6.478) đạt tỷ lệ khớp từ 99,75% đến 99,91%, do một số lỗi giá trị lọt lưới vẫn để lại sai lệch trên các dòng giữ lại. Kết quả chi tiết ở Bảng 3.
 
 Có 27 dòng nguồn bị cách ly, tương ứng 22 mã dòng nghiệp vụ. 5 mã xung đột có hai biến thể mỗi mã. Tỷ lệ giữ lại trên 6.500 mã gốc là 99,662%.
 
-Độ chính xác của cách ly đạt 100,0%: mọi dòng bị cách ly đều thực sự mang lỗi. Độ phủ chỉ đạt 2,1% và đây mới là con số cần đọc. Bản trước công bố 100%/100% vì mẫu số chỉ gồm hai họ lỗi mà quy tắc vốn nhắm tới, tức là quy tắc được đo bằng chính điều kiện nó đã dùng để cách ly. Khi tính trên toàn bộ 49 dòng mang lỗi thuộc tám họ, khoảng 97,9% lỗi vẫn nằm lại trong tập phân tích.
+Độ chính xác của cách ly đạt 100,0%: mọi dòng bị cách ly đều thực sự mang lỗi. Về độ phủ phát hiện, cần phân biệt rõ hai cấp độ đánh giá: trên tổng số các dòng có lỗi hoặc cần chuẩn hóa ban đầu, phần lớn lỗi định dạng và ô thiếu đã được khôi phục chính xác tại chỗ; riêng trên 49 dòng thuộc tám họ lỗi giá trị và vi phạm nghiệp vụ, quy trình cách ly 17 dòng (34,7%) và gắn cờ cảnh báo 6 dòng (12,2%), đạt tổng tỷ lệ phát hiện 46,9%. Có 32 dòng mang lỗi giá trị (65,3%) lọt vào tập sạch và còn sai khác dữ liệu chuẩn.
 
-Bảng 4 tách kết quả theo từng họ. Quy tắc miền giá trị bắt được lỗi số lượng âm, số lượng không nguyên và mã sách không tồn tại. Nó không thể bắt lỗi vẫn nằm trong miền hợp lệ: giá bị đặt lại bằng giá gốc, giá bị hoán vị giữa hai dòng, ngày bị đảo, và thể loại sai nhưng hợp lệ. Với các họ đó, cột còn sai đo mức độ ảnh hưởng thực tế thay vì che nó bằng một tỷ lệ phát hiện cao.
+Bảng 4 tách kết quả theo từng họ. Quy tắc miền giá trị bắt được lỗi số lượng âm, số lượng không nguyên và phát hiện mã sách ngoài danh mục để gắn cờ. Nó không thể phát hiện lỗi vẫn nằm trong miền hợp lệ: giá bị đặt lại bằng giá gốc, giá bị hoán vị giữa hai dòng, ngày bị đảo, và thể loại sai nhưng hợp lệ. Với các họ đó, cột còn sai đo mức độ ảnh hưởng thực tế thay vì che nó bằng một tỷ lệ phát hiện cao.
 
-Tổng chuẩn là 2.978.555.000 đồng; tập sạch có 3.067.680.000 đồng, sai lệch 2,992%. Trên đúng tập mã được giữ lại, sai lệch tổng bằng 99.657.000 đồng. Khi không thể phục hồi số lượng gốc, việc cách ly là thận trọng nhưng làm thiếu tổng bán hàng; cần công bố mức ảnh hưởng này.
+Tổng chuẩn là 2.978.555.000 đồng; tập sạch có 3.067.680.000 đồng, chênh lệch +2,992% (+89.125.000 đồng). Sự chênh lệch này là kết quả ròng của hai tác động ngược chiều: các lỗi giá trị còn sót làm tăng doanh thu trên tập giữ lại thêm +99.657.000 đồng; ngược lại, việc cách ly 22 mã dòng nghiệp vụ làm giảm một phần doanh thu (khoảng 10.532.000 đồng). Hiệu ứng lỗi sót vượt trội khiến doanh thu tập sạch cao hơn dữ liệu chuẩn; cần tách bạch hai tác động này thay vì quy giản cho riêng việc cách ly.
 
 Có 184 dòng bị gắn cờ IQR, gồm cả trường hợp lượng cao hợp lệ. Cần phân biệt kiểm tra hợp lệ theo miền dữ liệu với đánh giá hiếm gặp theo phân phối. Không dùng tỷ lệ ô thiếu bằng 0 làm thước đo duy nhất của chất lượng.
 
@@ -136,7 +136,7 @@ Bảng 3 đối chiếu từng trường với dữ liệu chuẩn trên tập g
 
 Số dòng giảm từ 6.660 xuống 6.478 cần được đọc theo hai mẫu số. Có 155 bản sao được gộp và 27 dòng nguồn được cách ly, tổng cộng 182 dòng rời tập nguồn. Tuy nhiên, 6.500 mã nghiệp vụ chuẩn chỉ giảm 22 mã, vì các bản sao không đại diện giao dịch bổ sung. Do đó tỷ lệ giữ dữ liệu nghiệp vụ được tính bằng 6.478/6.500, thay vì 6.478/6.660. Việc công bố cả hai số giúp tránh đánh đồng khử trùng với mất giao dịch.
 
-Con số cần đọc không phải độ chính xác mà là độ phủ. Trên 49 dòng mang lỗi thuộc tám họ, chỉ 17 dòng bị cách ly, tức 34,7%. 32 dòng mang lỗi vẫn nằm trong tập phân tích và vẫn khác dữ liệu chuẩn. Bản trước công bố 100% cho cả độ chính xác và độ phủ vì mẫu số chỉ gồm hai họ lỗi mà quy tắc vốn nhắm tới; cách đo đó không thể phát hiện điều gì ngoài chính quy tắc đã dùng.
+Con số cần đọc không phải độ chính xác mà là độ phủ và tỷ lệ phát hiện. Trên 49 dòng mang lỗi thuộc tám họ giá trị, có 17 dòng bị cách ly (34,7%) và 6 dòng được phát hiện qua kiểm tra tham chiếu để gắn cờ (12,2%), nâng tổng độ phủ phát hiện lên 46,9%. 32 dòng mang lỗi (65,3%) vẫn nằm trong tập phân tích và vẫn khác dữ liệu chuẩn. Bản trước công bố 100% cho cả độ chính xác và độ phủ vì mẫu số chỉ gồm hai họ lỗi mà quy tắc vốn nhắm tới; cách đo đó không thể phát hiện điều gì ngoài chính quy tắc đã dùng.
 
 Việc tách theo họ lỗi không nhằm làm con số đẹp hơn mà để chỉ ra giới hạn của phương pháp. Bốn họ lỗi tạo ra giá trị vẫn hợp lệ: giá bị đặt lại bằng giá gốc, giá bị hoán vị giữa hai dòng, ngày bị đảo tháng và thể loại sai nhưng hợp lệ. Không quy tắc nào chỉ dựa trên miền giá trị phát hiện được chúng, và bài không dựng quy tắc đọc dữ liệu chuẩn để xóa chúng, vì làm vậy sẽ biến đáp án của thí nghiệm thành đầu vào của quy trình.
 
@@ -157,26 +157,26 @@ Việc tách theo họ lỗi không nhằm làm con số đẹp hơn mà để c
 
 Một tỷ lệ phát hiện gộp không cho biết quy tắc làm sạch mạnh ở đâu và yếu ở đâu. Tám họ lỗi dưới đây được cài với số lượng ngẫu nhiên theo phân phối Poisson, nên số lỗi mỗi lần chạy cũng là biến ngẫu nhiên. Nhờ vậy tỷ lệ giữ lại có sai số thực thay vì là một hằng số thiết kế.
 
-Cột tỷ lệ phát hiện là số dòng bị cách ly chia số dòng mang lỗi. Cột còn sai là số dòng mang lỗi vẫn nằm trong tập sạch và vẫn khác dữ liệu chuẩn; đây là thước đo thiệt hại thật, vì một dòng có thể bị cách ly vì lý do khác mà vẫn được tính là bắt được.
+Cột tỷ lệ phát hiện là tổng số dòng được phát hiện (bị cách ly hoặc gắn cờ cảnh báo) chia số dòng mang lỗi. Cột còn sai là số dòng mang lỗi vẫn nằm trong tập sạch và vẫn khác dữ liệu chuẩn; đây là thước đo thiệt hại thật, vì một dòng có thể được phát hiện nhưng không thể tự khôi phục dữ liệu gốc.
 
-Ba họ không thể phát hiện bằng miền giá trị là lỗi bản chất của dữ liệu, không phải thiếu sót của mã. Giá bị đặt lại bằng giá gốc, giá bị hoán vị, ngày bị đảo và thể loại sai đều tạo ra giá trị hợp lệ. Chỉ dữ liệu đối chiếu bên ngoài hoặc kiểm tra chéo nguồn mới phát hiện được. Vì vậy bài giữ các dòng này lại, công bố ảnh hưởng và không dựng một quy tắc đọc dữ liệu chuẩn để xóa chúng.
+Bốn họ không thể phát hiện bằng miền giá trị là lỗi bản chất của dữ liệu, không phải thiếu sót của mã: giá bị đặt lại bằng giá gốc, giá bị hoán vị, ngày bị đảo và thể loại sai đều tạo ra giá trị hợp lệ. Riêng họ lỗi catalog_missing (mã sách ngoài danh mục) được phát hiện 100% nhờ kiểm tra tính toàn vẹn tham chiếu và gắn cờ cảnh báo (6 dòng), nhưng pipeline không cách ly nhằm bảo toàn giao dịch doanh thu hợp lệ, và vì không thể tự suy đoán mã sách nên cả 6 dòng vẫn còn sai khác dữ liệu chuẩn. Chỉ dữ liệu đối chiếu bên ngoài hoặc kiểm tra chéo nguồn mới khôi phục được các giá trị này.
 
-Hình 1 xếp các họ theo tỷ lệ phát hiện, tô màu theo khả năng phát hiện. Bảng 4 ghi số lượng, tỷ lệ phát hiện và số dòng còn sai cho từng họ.
+Hình 1 xếp các họ theo tỷ lệ phát hiện, tô màu theo khả năng phát hiện. Bảng 4 ghi số lượng cài, số cách ly, số gắn cờ, tỷ lệ phát hiện và số dòng còn sai cho từng họ.
 
 ![Hình 1. Hiệu năng phát hiện của quy trình làm sạch theo từng họ lỗi được cài](../charts/09_error_family.png)
 
 **Bảng 4. Hiệu năng phát hiện của quy trình làm sạch theo từng họ lỗi được cài**
 
-| Họ lỗi | Số dòng | Bị cách ly | Tỷ lệ phát hiện | Còn sai | Phát hiện được |
-| --- | --- | --- | --- | --- | --- |
-| qty_scale | 8 | 2 | 25% | 6 | partly |
-| qty_negative | 5 | 5 | 100% | 0 | yes |
-| qty_fractional | 3 | 3 | 100% | 0 | yes |
-| price_reset | 4 | 0 | 0% | 4 | no |
-| price_swap | 10 | 4 | 40% | 6 | partly |
-| date_swap | 8 | 3 | 38% | 5 | partly |
-| genre_mislabel | 5 | 0 | 0% | 5 | no |
-| catalog_missing | 6 | 0 | 100% | 6 | yes |
+| Họ lỗi | Số dòng | Cách ly | Gắn cờ | Tỷ lệ phát hiện | Còn sai | Khả năng phát hiện |
+| --- | --- | --- | --- | --- | --- | --- |
+| qty_scale | 8 | 2 | 0 | 25% | 6 | partly |
+| qty_negative | 5 | 5 | 0 | 100% | 0 | yes |
+| qty_fractional | 3 | 3 | 0 | 100% | 0 | yes |
+| price_reset | 4 | 0 | 0 | 0% | 4 | no |
+| price_swap | 10 | 4 | 0 | 40% | 6 | partly |
+| date_swap | 8 | 3 | 0 | 38% | 5 | partly |
+| genre_mislabel | 5 | 0 | 0 | 0% | 5 | no |
+| catalog_missing | 6 | 0 | 6 | 100% | 6 | yes |
 
 # Chương 4 Kết quả phân tích và trực quan hóa
 
@@ -230,7 +230,7 @@ Nếu muốn nghiên cứu tác động khuyến mãi trên dữ liệu thực, 
 
 # 4.5 Điểm sách và lượng bán
 
-Điểm là thuộc tính giả lập cố định của sách. Vì một sách có nhiều dòng, hình chính tổng hợp lên cấp mã sách, n=301. Pearson giữa điểm và tổng cuốn ở cấp sách là 0,105; hệ số ở cấp dòng là 0,012. Hai giá trị trả lời hai câu hỏi khác nhau, không thể thay thế tùy ý. Chúng cũng không được tính trên cùng một đơn vị: hệ số cấp sách gộp theo cặp mã sách và tên sách, vì các dòng không tra được mã sách mang khóa thay thế BK9999 và nếu chỉ gộp theo mã thì nhiều sách khác nhau bị nhập thành một.
+Điểm là thuộc tính giả lập cố định của sách. Vì một sách có nhiều dòng, hình chính tổng hợp lên cấp sách theo cặp mã sách và tên sách (gồm 300 sách danh mục và 6 đầu sách mang mã ngoài danh mục BK9999, tổng cộng 306 đầu sách phân biệt, ứng với 301 mã sách duy nhất). Pearson giữa điểm và tổng cuốn ở cấp sách là 0,105; hệ số ở cấp dòng là 0,012. Hai giá trị trả lời hai câu hỏi khác nhau, không thể thay thế tùy ý. Chúng cũng không được tính trên cùng một đơn vị: hệ số cấp sách gộp theo cặp mã sách và tên sách, vì các dòng không tra được mã sách mang khóa thay thế BK9999 và nếu chỉ gộp theo mã thì nhiều sách khác nhau bị nhập thành một.
 
 Điểm được sinh độc lập với cơ chế chọn sách và lượng, nên tương quan ở cấp quần thể bằng 0 theo thiết kế. Giá trị quan sát ở một seed vì thế chỉ là một lần rút từ phân phối null, không phải một phát hiện. Để kiểm chứng, dữ liệu được sinh lại qua nhiều seed và tính lại cùng hệ số; kết quả ở Bảng 5.
 
@@ -246,7 +246,7 @@ Không có lịch sử đánh giá, lượt xem, quảng cáo hoặc đo niềm 
 
 Có 6.478 dòng có điểm trong kịch bản đầy đủ danh mục; 74,22% số dòng có điểm từ 4 trở lên. Đây là tỷ lệ dòng mang điểm sách giả lập, không phải tỷ lệ khách hàng hài lòng. Bài không tính p-value từ các dòng lặp của cùng sách.
 
-Hình 6 chấm từng mã sách theo điểm và tổng cuốn; hệ số in trên hình là tương quan cấp sách, không phải cấp dòng. Hình 7 đặt giá trị quan sát lên phân phối null để thấy nó nằm ngoài khoảng 95%, tức là cần giải thích chứ không phải nhiễu thông thường.
+Hình 6 chấm từng mã sách theo điểm và tổng cuốn; hệ số in trên hình là tương quan cấp sách, không phải cấp dòng. Hình 7 đặt giá trị quan sát lên phân phối null để thấy nó nằm trong khoảng 95%, tương thích với phân phối ngẫu nhiên của mô hình và không phải một phát hiện thị trường.
 
 Để biết giá trị 0,105 có ý nghĩa hay chỉ là nhiễu, dữ liệu được sinh lại qua 200 seed và tính lại cùng hệ số. Phân phối null có trung bình 0,000, độ lệch chuẩn 0,058 và khoảng 95% thực nghiệm [-0,112; 0,107]. Giá trị quan sát ở phân vị thứ 96,5 và nằm trong khoảng đó. Vì vậy nó tương thích với mức dao động do chính mô hình sinh ra, và không được trình bày như một phát hiện. Điều này cũng không cho phép kết luận ngược lại rằng có một quan hệ thị trường: điểm đánh giá được sinh độc lập với lượng, nên ở cấp quần thể tương quan bằng 0 theo thiết kế. Việc phân vị và khoảng được báo cáo cùng nhau là có chủ ý, vì một giá trị có thể ở vùng đuôi mà vẫn nằm trong khoảng trung tâm 95%.
 
@@ -309,7 +309,7 @@ Giá trị bán hàng được định nghĩa bằng giá bán × số lượng;
 
 Các bảng số gốc results/correlation.csv và describe.csv cho phép kiểm tra hệ số và phân phối. Khi áp dụng cho dữ liệu thực, cần xác định thời điểm đo từng biến và cách gom quan sát phụ thuộc; không diễn giải tương quan thành nguyên nhân.
 
-Sai lệch tổng giá trị trung bình ở cả ba kịch bản nằm quanh 2,992%. Kết quả này cho thấy cơ chế cách ly gây thiếu tổng trong các lần thử đang xét, kể cả khi giả định về mùa vụ hoặc giảm giá thay đổi. Đây là một lý do cần theo dõi chỉ tiêu đầy đủ song song với chỉ tiêu sửa đúng. Khi tăng số lần chạy, MCSE của trung bình thường giảm theo căn bậc hai của số lần chạy trong điều kiện các lần chạy độc lập và phương sai hữu hạn.
+Sai lệch tổng giá trị trung bình ở cả ba kịch bản nằm quanh +2,992%. Kết quả này phản ánh tác động đồng thời của việc cách ly giao dịch bất thường và các lỗi giá trị còn sót qua các lần thử đang xét, kể cả khi giả định về mùa vụ hoặc giảm giá thay đổi. Đây là một lý do cần theo dõi chỉ tiêu đầy đủ và kiểm soát lỗi lọt lưới song song với chỉ tiêu sửa đúng. Khi tăng số lần chạy, MCSE của trung bình thường giảm theo căn bậc hai của số lần chạy trong điều kiện các lần chạy độc lập và phương sai hữu hạn.
 
 ![Hình 9. Ma trận tương quan Pearson ở cấp dòng bán hàng; các biến tính từ nhau có tương quan theo định nghĩa](../charts/06_correlation.png)
 
@@ -331,7 +331,7 @@ Một kết quả xuất hiện trong một lần mô phỏng có thể phụ th
 
 Ba kịch bản dùng seed 100 đến 149: cơ sở; đặt β=0; đặt S=1 cho mọi tháng. Mỗi kịch bản có 50 lần sinh độc lập theo seed. Đây là so sánh có ghép seed, không phải can thiệp ngẫu nhiên trên người mua thật. Quy mô được chọn để minh họa độ dao động và thời gian chạy phù hợp học phần; chưa tuyên bố hội tụ cho mọi chỉ tiêu.
 
-Ý nghĩa quản trị trực tiếp của kết quả là xây dựng cơ chế đối soát trước khi sử dụng báo cáo bán hàng. Sai lệch -89.125.000 đồng giữa tập chuẩn và tập sạch cho biết phần giá trị nằm trong các giao dịch chưa đủ điều kiện phân tích. Khi vận hành thực tế, người phụ trách dữ liệu cần rà soát hồ sơ gốc của các mã bị cách ly, cập nhật trạng thái xử lý và tính lại tổng sau khi xác minh. Nhờ đó, báo cáo thể hiện cả kết quả phân tích và phạm vi dữ liệu đang chờ xử lý.
+Ý nghĩa quản trị trực tiếp của kết quả là xây dựng cơ chế đối soát trước khi sử dụng báo cáo bán hàng. Chênh lệch +89.125.000 đồng (+2,992%) giữa tập sạch và tập chuẩn phản ánh tác động đồng thời của hai lực: các lỗi giá trị còn sót làm tăng doanh thu trên tập giữ lại (+99.657.000 đồng), trong khi việc cách ly 27 dòng làm giảm doanh thu (khoảng 10.532.000 đồng). Khi vận hành thực tế, người phụ trách dữ liệu cần rà soát cả các hồ sơ gốc bị cách ly lẫn kiểm tra chéo các dòng nghi ngờ mang giá trị hợp lệ nhưng sai để xác minh và tính lại tổng. Nhờ đó, báo cáo thể hiện đầy đủ kết quả phân tích và phạm vi dữ liệu đang chờ xử lý.
 
 Các kết quả theo thể loại, sách, kênh và thời gian cung cấp cấu trúc cho một báo cáo quản trị định kỳ. Người quản lý có thể dùng cấu trúc này để chọn nhóm cần kiểm tra thêm, chẳng hạn một đầu sách có tổng lượng cao do ít đơn mua nhiều. Quyết định nhập hàng cần bổ sung tồn kho và thời gian cung ứng. Quyết định khuyến mãi cần bổ sung giá vốn và chi phí kênh. Việc nêu dữ liệu cần bổ sung giúp chuyển nhận xét mô tả thành một quy trình ra quyết định có điều kiện kiểm chứng.
 
@@ -444,9 +444,9 @@ Không có căn cứ trong bài để cắt tồn kho 40%, dồn ngân sách 70%
 
 Hạn chế chính: mọi tham số chưa hiệu chỉnh; danh mục hoàn toàn giả lập; chỉ một loại đơn một đầu sách; chỉ 300 sách và 2 năm; lỗi cài vẫn do tác giả thiết kế nên chưa chứng minh hiệu năng trên lỗi chưa biết; danh mục chuẩn đáng tin là giả định mạnh và nay đã đo được ảnh hưởng của nó; thiếu ngẫu nhiên được mô phỏng theo ba cơ chế nhưng vẫn là giả định về cơ chế; số lần mô phỏng chưa đủ để khảo sát mọi trường hợp; không đo ngoại lực và chi phí.
 
-Một hạn chế cần nói rõ vì nó là kết quả, không phải sơ suất: khoảng một nửa số lỗi được cài vẫn nằm lại trong tập phân tích. Các họ lỗi tạo ra giá trị hợp lệ như giá bị đặt lại, giá bị hoán vị, ngày bị đảo và thể loại sai không thể phát hiện bằng miền giá trị, và bài không dựng quy tắc đọc dữ liệu chuẩn để xóa chúng. Vì vậy tổng giá trị bán hàng trong kịch bản cơ sở cao hơn dữ liệu chuẩn vài phần trăm. Con số đó được công bố, không được làm mất.
+Một hạn chế cần nói rõ vì nó là kết quả, không phải sơ suất: khoảng 65,3% số lỗi giá trị được cài (32/49 dòng mang lỗi) vẫn nằm lại trong tập phân tích. Các họ lỗi tạo ra giá trị hợp lệ như giá bị đặt lại bằng giá gốc, giá bị hoán vị, ngày bị đảo và thể loại sai không thể phát hiện bằng miền giá trị, và bài không dựng quy tắc đọc dữ liệu chuẩn để xóa chúng. Vì vậy tổng giá trị bán hàng trong kịch bản cơ sở cao hơn dữ liệu chuẩn khoảng +2,992% (+89.125.000 đồng). Con số đó được công bố minh bạch và phân tích rõ nguồn gốc.
 
-Kết luận: bài hoàn thành chu trình xây dựng, xử lý, EDA và trực quan hóa trên dữ liệu mô phỏng, có đối soát bằng dữ liệu chuẩn và đánh giá ảnh hưởng của loại bản ghi. Kết quả cho thấy có thể phục hồi chính xác các trường đã kiểm tra trên tập giữ lại nhưng tổng kỳ vẫn thiếu do cách ly. Ý nghĩa khoa học nằm ở tính kiểm chứng và việc nhận biết giới hạn, không ở khẳng định một quy luật thị trường mới.
+Kết luận: bài hoàn thành chu trình xây dựng, xử lý, EDA và trực quan hóa trên dữ liệu mô phỏng, có đối soát bằng dữ liệu chuẩn và đánh giá ảnh hưởng của loại bản ghi. Kết quả cho thấy các trường thuộc tính danh mục có thể phục hồi chính xác trên tập giữ lại, nhưng tổng giá trị bán hàng bị tác động bởi cả lỗi giá trị còn sót làm tăng doanh thu và việc cách ly giao dịch làm giảm số lượng bản ghi. Ý nghĩa khoa học nằm ở tính kiểm chứng và việc nhận biết giới hạn, không ở khẳng định một quy luật thị trường mới.
 
 Hướng tiếp theo hợp lý là lấy một bộ giao dịch ẩn danh có quyền sử dụng từ nhà sách, xác minh danh mục và so sánh phân phối với mô hình. Chỉ sau đó mới hiệu chỉnh tham số hoặc đề xuất dự báo; nếu không có dữ liệu thật, mở rộng các cơ chế lỗi và số lần mô phỏng, công khai chúng là thí nghiệm giả lập.
 
@@ -476,6 +476,6 @@ Mã raw_row_id phân biệt từng bản ghi nguồn. Mã ma_dong phân biệt g
 
 Các trường mô tả sách gồm tên sách, thể loại, tác giả, nhà xuất bản và năm xuất bản. Các trường giao dịch gồm ngày bán, kênh, giá gốc, giảm giá niêm yết, giá bán và số lượng. Điểm đánh giá là thuộc tính cố định của sách. Giá trị bán hàng và giảm giá thực tế là các biến được tính từ trường nguồn.
 
-Tệp cell_changes ghi giá trị trước và sau ở cấp ô. Tệp row_lineage ghi trạng thái cuối cho mỗi dòng nguồn. Tệp quarantine giữ bản ghi cần xác minh cùng lý do. Khi đọc một tổng bị giảm sau làm sạch, có thể đi ngược từ bảng tổng hợp đến các trạng thái và mã dòng để xác định nguyên nhân.
+Tệp cell_changes ghi giá trị trước và sau ở cấp ô. Tệp row_lineage ghi trạng thái cuối cho mỗi dòng nguồn. Tệp quarantine giữ bản ghi cần xác minh cùng lý do. Khi xem xét sai lệch tổng sau làm sạch, có thể đi ngược từ bảng tổng hợp đến các trạng thái và mã dòng để xác định nguyên nhân từ cả các dòng bị cách ly lẫn các dòng lỗi còn sót.
 
 Từ điển đầy đủ tại data/data_dictionary.md quy định kiểu logic, đơn vị, miền giá trị và công thức. Tiền được biểu diễn bằng đồng, số lượng bằng cuốn và ngày theo định dạng YYYY-MM-DD. Các CSV sử dụng UTF-8 BOM để hỗ trợ đọc tiếng Việt.

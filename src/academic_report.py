@@ -19,7 +19,9 @@ def enrich(sections, m, v, stages, q, raw, families=None, null=None, nullstats=N
     n_truth = p['n_lines']
     n_removed = n_dup + n_quarantine
     n_business_lost = n_truth - n_clean
-    revenue_gap = v['truth_revenue'] - v['clean_revenue']
+    net_revenue_gap = v['clean_revenue'] - v['truth_revenue']
+    retained_err = v.get('retained_revenue_error', 0)
+    quarantine_loss = v['truth_revenue'] - (v['clean_revenue'] - retained_err)
 
     def block(title, *paragraphs):
         return dict(title=title, paras=list(paragraphs), chart=None, table=None, caption=None)
@@ -74,16 +76,18 @@ def enrich(sections, m, v, stages, q, raw, families=None, null=None, nullstats=N
         'Việc công bố cả hai số giúp tránh đánh đồng khử trùng với mất giao dịch.')
     sections[7]['paras'].append('So sánh tháng dựa trên tổng giá trị cần xem thêm số ngày lịch và số giao dịch trong từng tháng. Tháng ngắn hơn có ít cơ hội phát sinh dòng bán hơn khi ngày được chọn đều. Vì vậy mức chênh lệch đỉnh và đáy là kết quả mô tả tổng hợp. Một phân tích vận hành mở rộng có thể báo cáo thêm giá trị bình quân theo ngày hoạt động và số cuốn trên đơn để tách quy mô giao dịch khỏi giá trị mỗi giao dịch.')
     sections[13]['paras'].append(
-        f'Sai lệch tổng giá trị trung bình ở cả ba kịch bản nằm quanh {f(v["relative_revenue_error_pct"],3)}%. Kết quả này cho thấy cơ chế cách ly gây thiếu tổng trong các lần thử đang xét, kể cả khi giả định về mùa vụ hoặc giảm giá thay đổi. '
-        'Đây là một lý do cần theo dõi chỉ tiêu đầy đủ song song với chỉ tiêu sửa đúng. Khi tăng số lần chạy, MCSE của trung bình thường giảm theo căn bậc hai của số lần chạy trong điều kiện các lần chạy độc lập và phương sai hữu hạn.')
+        f'Sai lệch tổng giá trị trung bình ở cả ba kịch bản nằm quanh +{f(v["relative_revenue_error_pct"],3)}%. Kết quả này phản ánh tác động đồng thời của việc cách ly giao dịch bất thường và các lỗi giá trị còn sót qua các lần thử đang xét, kể cả khi giả định về mùa vụ hoặc giảm giá thay đổi. '
+        'Đây là một lý do cần theo dõi chỉ tiêu đầy đủ và kiểm soát lỗi lọt lưới song song với chỉ tiêu sửa đúng. Khi tăng số lần chạy, MCSE của trung bình thường giảm theo căn bậc hai của số lần chạy trong điều kiện các lần chạy độc lập và phương sai hữu hạn.')
     if families is not None and len(families):
         agg = families.attrs.get('aggregate') or {}
         n_inj = int(families.n_cai.sum())
         n_caught = int(families.n_cach_ly.sum())
+        n_flagged = int(families.n_danh_dau.sum())
+        n_detected = n_caught + n_flagged
         n_wrong = int(families.con_sai.sum())
         sections[4]['paras'].append(
-            f'Con số cần đọc không phải độ chính xác mà là độ phủ. Trên {f(n_inj)} dòng mang lỗi thuộc tám họ, chỉ {f(n_caught)} dòng bị cách ly, tức {f(100*n_caught/n_inj if n_inj else 0,1)}%. '
-            f'{f(n_wrong)} dòng mang lỗi vẫn nằm trong tập phân tích và vẫn khác dữ liệu chuẩn. '
+            f'Con số cần đọc không phải độ chính xác mà là độ phủ và tỷ lệ phát hiện. Trên {f(n_inj)} dòng mang lỗi thuộc tám họ giá trị, có {f(n_caught)} dòng bị cách ly ({f(100*n_caught/n_inj if n_inj else 0,1)}%) và {f(n_flagged)} dòng được phát hiện qua kiểm tra tham chiếu để gắn cờ ({f(100*n_flagged/n_inj if n_inj else 0,1)}%), nâng tổng độ phủ phát hiện lên {f(100*n_detected/n_inj if n_inj else 0,1)}%. '
+            f'{f(n_wrong)} dòng mang lỗi ({f(100*n_wrong/n_inj if n_inj else 0,1)}%) vẫn nằm trong tập phân tích và vẫn khác dữ liệu chuẩn. '
             'Bản trước công bố 100% cho cả độ chính xác và độ phủ vì mẫu số chỉ gồm hai họ lỗi mà quy tắc vốn nhắm tới; cách đo đó không thể phát hiện điều gì ngoài chính quy tắc đã dùng.')
         sections[4]['paras'].append(
             'Việc tách theo họ lỗi không nhằm làm con số đẹp hơn mà để chỉ ra giới hạn của phương pháp. Bốn họ lỗi tạo ra giá trị vẫn hợp lệ: giá bị đặt lại bằng giá gốc, giá bị hoán vị giữa hai dòng, ngày bị đảo tháng và thể loại sai nhưng hợp lệ. '
@@ -109,8 +113,8 @@ def enrich(sections, m, v, stages, q, raw, families=None, null=None, nullstats=N
             'Ở mức bao phủ 50%, khoảng một nửa giá trị bán hàng biến khỏi tập phân tích. Đây là lý do giả định này phải được nêu ở phần hạn chế như một điều kiện của toàn bộ kết quả, không phải một chi tiết kỹ thuật.')
     sections[15]['paras'] = [p_ for p_ in sections[15]['paras'] if not p_.startswith(('Trách nhiệm nhóm:', 'Không có căn cứ'))]
     sections[15]['paras'].insert(1,
-        f'Ý nghĩa quản trị trực tiếp của kết quả là xây dựng cơ chế đối soát trước khi sử dụng báo cáo bán hàng. Sai lệch {f(revenue_gap)} đồng giữa tập chuẩn và tập sạch cho biết phần giá trị nằm trong các giao dịch chưa đủ điều kiện phân tích. '
-        'Khi vận hành thực tế, người phụ trách dữ liệu cần rà soát hồ sơ gốc của các mã bị cách ly, cập nhật trạng thái xử lý và tính lại tổng sau khi xác minh. Nhờ đó, báo cáo thể hiện cả kết quả phân tích và phạm vi dữ liệu đang chờ xử lý.')
+        f'Ý nghĩa quản trị trực tiếp của kết quả là xây dựng cơ chế đối soát trước khi sử dụng báo cáo bán hàng. Chênh lệch +{f(net_revenue_gap)} đồng (+{f(v["relative_revenue_error_pct"],3)}%) giữa tập sạch và tập chuẩn phản ánh tác động đồng thời của hai lực: các lỗi giá trị còn sót làm tăng doanh thu trên tập giữ lại (+{f(retained_err)} đồng), trong khi việc cách ly {f(n_quarantine)} dòng làm giảm doanh thu (khoảng {f(quarantine_loss)} đồng). '
+        'Khi vận hành thực tế, người phụ trách dữ liệu cần rà soát cả các hồ sơ gốc bị cách ly lẫn kiểm tra chéo các dòng nghi ngờ mang giá trị hợp lệ nhưng sai để xác minh và tính lại tổng. Nhờ đó, báo cáo thể hiện đầy đủ kết quả phân tích và phạm vi dữ liệu đang chờ xử lý.')
     sections[15]['paras'].insert(2, 'Các kết quả theo thể loại, sách, kênh và thời gian cung cấp cấu trúc cho một báo cáo quản trị định kỳ. Người quản lý có thể dùng cấu trúc này để chọn nhóm cần kiểm tra thêm, chẳng hạn một đầu sách có tổng lượng cao do ít đơn mua nhiều. Quyết định nhập hàng cần bổ sung tồn kho và thời gian cung ứng. Quyết định khuyến mãi cần bổ sung giá vốn và chi phí kênh. Việc nêu dữ liệu cần bổ sung giúp chuyển nhận xét mô tả thành một quy trình ra quyết định có điều kiện kiểm chứng.')
     result = [sections[0], introduction, sections[1], theory,
         block('Chương 3 Xây dựng và xử lý dữ liệu', 'Quy trình gồm thiết kế danh mục, sinh giao dịch chuẩn, tạo bản dữ liệu có lỗi, chuẩn hóa và đối chiếu kết quả. Ba lớp dữ liệu nguồn, dữ liệu xử lý và dữ liệu kiểm chứng có vai trò riêng. Các bước xử lý đều ghi nhật ký để giải thích số dòng thay đổi và giá trị được sửa.'), *sections[2:6],
@@ -122,6 +126,6 @@ def enrich(sections, m, v, stages, q, raw, families=None, null=None, nullstats=N
     result.append(block('Phụ lục A Cấu trúc dữ liệu và khả năng truy vết',
         'Mã raw_row_id phân biệt từng bản ghi nguồn. Mã ma_dong phân biệt giao dịch nghiệp vụ và được giữ nguyên khi tạo bản sao. Mã ma_sach liên kết nhiều dòng bán với một sách trong danh mục. Ba mã này phục vụ ba mục đích khác nhau, nên khử trùng phải dựa vào mã nghiệp vụ và nội dung sau chuẩn hóa.',
         'Các trường mô tả sách gồm tên sách, thể loại, tác giả, nhà xuất bản và năm xuất bản. Các trường giao dịch gồm ngày bán, kênh, giá gốc, giảm giá niêm yết, giá bán và số lượng. Điểm đánh giá là thuộc tính cố định của sách. Giá trị bán hàng và giảm giá thực tế là các biến được tính từ trường nguồn.',
-        'Tệp cell_changes ghi giá trị trước và sau ở cấp ô. Tệp row_lineage ghi trạng thái cuối cho mỗi dòng nguồn. Tệp quarantine giữ bản ghi cần xác minh cùng lý do. Khi đọc một tổng bị giảm sau làm sạch, có thể đi ngược từ bảng tổng hợp đến các trạng thái và mã dòng để xác định nguyên nhân.',
+        'Tệp cell_changes ghi giá trị trước và sau ở cấp ô. Tệp row_lineage ghi trạng thái cuối cho mỗi dòng nguồn. Tệp quarantine giữ bản ghi cần xác minh cùng lý do. Khi xem xét sai lệch tổng sau làm sạch, có thể đi ngược từ bảng tổng hợp đến các trạng thái và mã dòng để xác định nguyên nhân từ cả các dòng bị cách ly lẫn các dòng lỗi còn sót.',
         'Từ điển đầy đủ tại data/data_dictionary.md quy định kiểu logic, đơn vị, miền giá trị và công thức. Tiền được biểu diễn bằng đồng, số lượng bằng cuốn và ngày theo định dạng YYYY-MM-DD. Các CSV sử dụng UTF-8 BOM để hỗ trợ đọc tiếng Việt.'))
     return result

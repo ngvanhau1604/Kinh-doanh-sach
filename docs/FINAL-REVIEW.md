@@ -33,6 +33,19 @@ Lỗi phát hiện thêm trong quá trình làm, không có trong danh sách ban
 - **CI chỉ chạy cho pull request có base là `main`.** PR3 và PR4 là stacked nên chưa từng được kiểm tra; danh sách check rỗng trông giống "chưa chạy" nhưng thực chất là "không bao giờ chạy". Sửa trigger xong thì lỗi tiếp theo lộ ra ngay bên dưới.
 - **`run.py` sập trên Windows CI.** `print(json.dumps(..., ensure_ascii=False))` gặp stdout cp1252 và ném `UnicodeEncodeError` ở ký tự 2772, làm hỏng bước pipeline smoke trên cả Python 3.12 và 3.13. Lỗi này không hiện ở máy local vì shell đã đặt `PYTHONIOENCODING=utf-8`. Nay phần in ra console lùi về `ensure_ascii=True` khi cần; tệp `metrics.json` vẫn ghi UTF-8 như cũ.
 
+### 1b. Các lỗi nghiêm trọng bàn giao đợt cuối (A – H) đã giải quyết triệt để
+
+| Mã | Lỗi | Cách xử lý tại nguồn |
+|---|---|---|
+| **Lỗi A** | Thiết kế 300 sách nhưng báo cáo thống kê 301 mã sách | Phân biệt rõ: 300 đầu sách chuẩn trong danh mục (`catalog.csv`); 301 mã sách duy nhất trong tập sạch (300 mã danh mục + 1 mã ngoài danh mục `BK9999`); 306 đầu sách theo cặp `(ma_sach, ten_sach)` do `BK9999` đại diện 6 đầu sách khác nhau. |
+| **Lỗi B** | Các tỷ lệ phát hiện lỗi bị lẫn lộn mẫu số (2,1%, 34,7%, 97,9% sót) | Tách bạch 2 cấp độ: Trên 1.029 giao dịch can thiệp ban đầu (hơn 900 giao dịch ô thiếu/định dạng đã được phục hồi đúng tại chỗ); riêng trên 49 dòng thuộc 8 họ lỗi giá trị, cách ly 17 dòng (34,7%), gắn cờ 6 dòng (12,2%), tổng tỷ lệ phát hiện 23/49 (46,9%), và 32/49 dòng (65,3%) lỗi giá trị còn sai trong tập sạch. Xóa bỏ hoàn toàn con số vô lý "97,9% lỗi còn lại". |
+| **Lỗi C** | Khẳng định cả tám trường đều khớp 100% dữ liệu chuẩn | Diễn giải trung thực: 3 trường thuộc tính danh mục (`diem_danh_gia`, `nam_xuat_ban`, `nha_xuat_ban`) khớp 100% (6.478/6.478); trường tác giả đạt 99,98%, thể loại đạt 99,92%; 3 trường giao dịch (`gia_ban`, `so_luong`, `doanh_thu`) đạt từ 99,75% đến 99,91% do các lỗi giá trị lọt lưới. |
+| **Lỗi D** | Họ lỗi `catalog_missing` có 0 dòng cách ly nhưng tỷ lệ phát hiện 100% | Bổ sung cột `Gắn cờ` (`n_danh_dau`) vào bảng họ lỗi; giải thích rõ 100% phát hiện là do gắn cờ cảnh báo tham chiếu (6 dòng), pipeline không cách ly để giữ dữ liệu doanh thu và vì không tự suy đoán mã nên 6 dòng này vẫn còn sai (`con_sai = 6`). Phân biệt rõ: phát hiện/gắn cờ ≠ cách ly ≠ phục hồi đúng. |
+| **Lỗi E** | Diễn giải sai lệch giá trị bán hàng (vẫn mô tả giảm do cách ly trong khi thực tế tập sạch cao hơn +2,992%) | Tách bạch 2 lực đối lập theo đúng đẳng thức số học: lỗi giá trị còn sót làm tăng doanh thu trên tập giữ lại (+99.657.000 đ), trong khi cách ly 22 mã nghiệp vụ làm giảm doanh thu (10.532.000 đ); hiệu ứng ròng là doanh thu tập sạch cao hơn chuẩn +89.125.000 đ (+2,992%). |
+| **Lỗi F** | Tương quan điểm–lượng cấp sách và phân phối null còn câu sót kết luận "nằm ngoài" | Thống nhất 100% trong toàn bộ báo cáo, bảng biểu, chú thích hình và notebook: r = 0,105 nằm TRONG khoảng null 95% [-0,112; 0,107] (ở phân vị 96,5%), tương thích với mức dao động ngẫu nhiên của mô hình và không phải một phát hiện thị trường. |
+| **Lỗi G** | Năm xuất bản 2015–2023 bị định dạng thành `2.015–2.023` | Bỏ định dạng phân cách hàng nghìn tại dòng xuất năm xuất bản trong `src/report_builder.py`, hiển thị chuẩn `2015–2023`. |
+| **Lỗi H** | README và tài liệu cũ mang số liệu cũ (6.480 dòng sạch, 20 mã nghiệp vụ, 25 biến thể) | Đồng bộ toàn bộ về số liệu thực tế: 6.478 dòng giữ lại, 22 mã nghiệp vụ bị cách ly (27 biến thể nguồn), chênh lệch doanh thu +2,992%. |
+
 ## 2. Cải tiến học thuật
 
 - **Thiết kế thí nghiệm theo ADEMP** (Morris và cộng sự, 2019), nêu rõ mục tiêu, cơ chế sinh, đại lượng, phương pháp, thước đo.
@@ -82,7 +95,7 @@ kết quả, không phải chi tiết kỹ thuật.
 
 ## 4. Kết quả chạy kiểm thử và pipeline
 
-- `pytest -q`: **51 passed** (~84 s).
+- `pytest -q`: **59 passed** (~64 s), gồm đầy đủ 8 bài kiểm thử hồi quy bảo vệ các lỗi A–H.
 - `run.py --replications 50 --null-seeds 200 --missing-seeds 100`: chạy xong (~280 s), sinh PDF/HTML/MD.
 - `run.py --out .ci-out --skip-presentation --replications 3` **không đặt `PYTHONIOENCODING`**: exit 0 (đây là điều kiện CI thật).
 - `tools/build_notebook.py` + `tools/execute_notebook.py`: **18 code cells, không lỗi**; `--check` pass hai lần liên tiếp, working tree sạch.
