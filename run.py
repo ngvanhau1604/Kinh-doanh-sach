@@ -103,7 +103,15 @@ def main():
         build_report(root,d,tables,metrics,validation,stages,exp,matches,raw=raw,missing=missing,
                      families=families,null=null,nullstats=nullstats,coverage=coverage)
     (root/'results/manifest.json').write_text(json.dumps({'python':sys.version,'platform':platform.platform(),'files':manifest_files(root)},ensure_ascii=False,indent=2),encoding='utf8',newline='\n')
-    print(json.dumps(allmetrics,ensure_ascii=False,indent=2),flush=True)
+    # stdout on Windows is cp1252 unless something forces UTF-8, and this payload carries
+    # Vietnamese metric names. Printing it unguarded crashed the pipeline on windows-latest
+    # (UnicodeEncodeError at character 2772) while passing locally, because a local shell with
+    # PYTHONIOENCODING set hid the problem. The JSON file above is already written as UTF-8, so
+    # the console copy degrades to escaped \uXXXX rather than failing the run.
+    try:
+        print(json.dumps(allmetrics,ensure_ascii=False,indent=2),flush=True)
+    except UnicodeEncodeError:
+        print(json.dumps(allmetrics,ensure_ascii=True,indent=2),flush=True)
 
 
 if __name__=='__main__':main()
