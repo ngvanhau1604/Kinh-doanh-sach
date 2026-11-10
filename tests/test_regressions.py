@@ -291,9 +291,17 @@ def test_generator_output_is_unchanged_by_the_config_refactor():
     import io
 
     def digest(df):
+        """Hash the CSV content with line endings normalised to LF.
+
+        pandas writes os.linesep by default, so the same frame serialises as CRLF on Windows
+        and LF on Linux. The committed reference files are CRLF, so a raw byte comparison only
+        ever passed on Windows and failed on every Linux runner. Normalising both sides keeps
+        this guard on what it is actually for: the random draw order. A change in draw order
+        alters the values, so it still fails here.
+        """
         buf = io.BytesIO()
         df.to_csv(buf, index=False, encoding='utf-8-sig')
-        return hashlib.sha256(buf.getvalue()).hexdigest()
+        return hashlib.sha256(buf.getvalue().replace(b'\r\n', b'\n')).hexdigest()
 
     catalog, truth = generate(seed=PARAMS['seed'], n=PARAMS['n_lines'],
                               discount_strength=PARAMS['discount_strength'],
@@ -303,5 +311,6 @@ def test_generator_output_is_unchanged_by_the_config_refactor():
                           ('ground_truth', truth, 'data/reference/ground_truth.csv'),
                           ('raw', raw, 'data/raw/book_sales_raw.csv'),
                           ('events', events, 'data/audit/injected_errors.csv')]:
-        assert digest(df) == hashlib.sha256((ROOT / rel).read_bytes()).hexdigest(), \
+        assert digest(df) == hashlib.sha256(
+            (ROOT / rel).read_bytes().replace(b'\r\n', b'\n')).hexdigest(), \
             f'{name} thay đổi sau khi refactor cấu hình'
