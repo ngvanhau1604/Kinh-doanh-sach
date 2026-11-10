@@ -6,7 +6,8 @@ Cập nhật: 2026-11-10. Ghi lại để công việc tiếp tục được n�
 
 - `main` @ `97624e3` — PR1 đã squash merge.
 - `feat/simulation-design` @ `832a835` — PR2, đã push, **Draft PR #2** đang mở.
-- Nhánh làm việc tiếp theo: `feat/analysis-visualization` (PR3), tách từ `832a835`.
+- `feat/analysis-visualization` — PR3, đã push, **Draft PR #3** đang mở, base là `feat/simulation-design` (stacked).
+- Nhánh làm việc tiếp theo: `feat/academic-report` (PR4), tách từ nhánh PR3.
 
 ## PR1 — đã merge
 
@@ -39,18 +40,50 @@ Chi tiết theo họ lỗi: `qty_negative` 100%, `qty_fractional` 100%, `catalog
 
 Kiểm thử: **42 passed**; `run.py --replications 50 --null-seeds 200 --missing-seeds 100` chạy xong; notebook `--check` pass.
 
-## PR3 — bước tiếp theo
+## PR3 — Draft PR #3, đã xong phần mã
 
-Phạm vi dự kiến:
+Nội dung: khoảng bootstrap, hình so sánh ba loại khoảng, và **sửa lại kết luận F-04**.
 
-1. Bootstrap khoảng tin cậy cho các chỉ tiêu chính (doanh thu, tương quan, tỷ trọng quý IV) — phân biệt rõ với khoảng null và với phân vị Monte Carlo.
-2. Hình phân phối null đã có (Hình 7); cần thêm hình khoảng bootstrap và hình so sánh ba loại khoảng để người đọc không nhầm chúng với nhau.
-3. Rà soát chú thích: mọi bảng/hình phải có n, đơn vị và nguồn.
-4. Kiểm tra diễn giải: mọi câu khẳng định trong báo cáo phải truy được về `results/*.csv` hoặc `metrics.json`.
+### F-04 phải sửa lần thứ hai
 
-## PR4 — sau PR3
+PR2 kết luận giá trị quan sát nằm ngoài khoảng null. Kết luận đó sai, và sai vì một lỗi đơn vị:
+`summarize` gộp sách theo `(ma_sach, ten_sach)` còn `null_band` gộp chỉ theo `ma_sach`. Các dòng
+không tra được mã sách mang khóa thay thế `BK9999`, nên cách gộp thứ hai nhập sáu sách khác nhau
+thành một và cộng dồn lượng của chúng. Giá trị quan sát và khoảng đem so được tính trên hai đơn vị
+khác nhau.
 
-Viết lại báo cáo học thuật, trích dẫn APA, tham chiếu bảng/hình, placeholder bìa (nhóm, trường, giảng viên — giữ trống, không bịa).
+Khi cả hai bên dùng cùng một cách gộp, qua 200 seed:
+
+- trung bình 0,000; độ lệch chuẩn 0,058; khoảng 95% **[−0,112; 0,107]**
+- giá trị quan sát **0,105456**, phân vị thứ 96,5
+- **nằm trong khoảng**
+
+Kết luận đúng: giá trị này tương thích với nhiễu của chính mô hình, không được trình bày như một
+phát hiện. Báo cáo vẫn ghi kèm phân vị vì 96,5 nằm ở đuôi của khoảng trung tâm 95%, và gộp thành
+một kết luận nhị phân sẽ che mất chi tiết đó.
+
+Phán quyết nay do `_inside_band` / `_band_verdict` tính, không viết tay trong văn bản. Bản viết tay
+đã lệch khỏi số liệu hai lần; có test chặn nếu lệch lại.
+
+### Khoảng bootstrap
+
+`bootstrap()` rút lại 2.000 lần, ghi `results/bootstrap_ci.csv`. Đơn vị rút lại khác nhau theo chỉ
+tiêu: chỉ tiêu cấp dòng rút theo dòng, riêng tương quan điểm–lượng cấp sách rút theo đầu sách. Có
+khoảng 300 sách so với khoảng 6.500 dòng, nên hai cách rút cho hai độ rộng rất khác nhau; một test
+chặn điều này.
+
+Báo cáo tách ba loại khoảng: bootstrap (độ chính xác của ước lượng), khoảng null (giá trị có thể do
+chính mô hình sinh ra không), và độ tản giữa các kịch bản (kết quả đổi thế nào khi thay giả định).
+Không loại nào là khoảng tin cậy thị trường.
+
+### Kiểm thử
+
+**48 passed**; `run.py` chạy xong; notebook `--check` pass, 18 code cells.
+
+## PR4 — bước tiếp theo
+
+Viết lại báo cáo học thuật, trích dẫn APA, tham chiếu bảng/hình, placeholder bìa (nhóm, trường,
+giảng viên — giữ trống, không bịa). Sau đó tạo `docs/FINAL-REVIEW.md` bảy mục.
 
 ## Việc bắt buộc con người làm
 
