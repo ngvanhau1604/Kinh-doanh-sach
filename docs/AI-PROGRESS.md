@@ -5,9 +5,11 @@ Cập nhật: 2026-11-10. Ghi lại để công việc tiếp tục được n�
 ## Trạng thái Git
 
 - `main` @ `97624e3` — PR1 đã squash merge.
-- `feat/simulation-design` @ `832a835` — PR2, đã push, **Draft PR #2** đang mở.
-- `feat/analysis-visualization` — PR3, đã push, **Draft PR #3** đang mở, base là `feat/simulation-design` (stacked).
-- Nhánh làm việc tiếp theo: `feat/academic-report` (PR4), tách từ nhánh PR3.
+- `feat/simulation-design` @ `832a835` — PR2, **Draft PR #2**, base `main`.
+- `feat/analysis-visualization` @ `d5c9718` — PR3, **Draft PR #3**, base `feat/simulation-design` (stacked).
+- `feat/academic-report` @ `24759b1` — PR4, **Draft PR #4**, base `feat/analysis-visualization` (stacked).
+
+Thứ tự merge: **PR2 → PR3 → PR4**. Không PR nào được tự merge.
 
 ## PR1 — đã merge
 
@@ -20,7 +22,7 @@ Hai lỗi hạ tầng phát hiện trong lần chạy CI đầu và đã sửa:
 
 Giới hạn tái lập cần nêu trong báo cáo: **văn bản và cấu trúc tái lập chính xác; hình ảnh tái lập theo nội dung, không theo byte.**
 
-## PR2 — Draft PR #2, đã xong phần mã
+## PR2 — Draft PR #2, xong phần mã
 
 Kết quả đo được (seed 42, 6500 dòng):
 
@@ -29,18 +31,17 @@ Kết quả đo được (seed 42, 6500 dòng):
 | Recall gộp | 1,000 | 0,469 |
 | Precision cách ly | 1,000 | 1,000 |
 | Dòng còn sai trong tập sạch | 0 | 32/49 |
-| Sai lệch doanh thu so với chuẩn | 0% | +2,99% |
-| F-04 (r cấp sách) | "nằm trong khoảng null" | **ngoài khoảng null** |
+| Sai lệch doanh thu so với chuẩn | 0% | +2,992% |
 
 Chi tiết theo họ lỗi: `qty_negative` 100%, `qty_fractional` 100%, `catalog_missing` 100% (đánh dấu, không cách ly), `price_swap` 40%, `date_swap` 37,5%, `qty_scale` 25%, `price_reset` 0%, `genre_mislabel` 0%.
 
-**F-04:** 200 seed, trung bình 0,000, sd 0,058, khoảng 95% [−0,112; 0,112]. Giá trị quan sát 0,105 ở phân vị 96,5 → ngoài khoảng. Kết luận cũ (12 seed) sai vì khoảng quá hẹp.
-
-**Độ bao phủ danh mục:** ở 50% bao phủ, doanh thu giữ lại còn 48,2% và lệch −50,5%. Đây là giả định điều kiện của toàn bộ kết quả, không phải chi tiết kỹ thuật.
+**Độ bao phủ danh mục:** ở 50% bao phủ, doanh thu giữ lại còn 48,3% và lệch −50,5%; 3.363 dòng bị cách ly. Đây là giả định điều kiện của toàn bộ kết quả, không phải chi tiết kỹ thuật.
 
 Kiểm thử: **42 passed**; `run.py --replications 50 --null-seeds 200 --missing-seeds 100` chạy xong; notebook `--check` pass.
 
-## PR3 — Draft PR #3, đã xong phần mã
+> **Lưu ý lịch sử:** bản ghi PR2 từng viết F-04 là "ngoài khoảng null" với khoảng [−0,112; 0,112]. Cả kết luận và khoảng đó đều sai — xem PR3 bên dưới. Số đúng là [−0,112; 0,107] và giá trị quan sát **nằm trong** khoảng.
+
+## PR3 — Draft PR #3, xong phần mã
 
 Nội dung: khoảng bootstrap, hình so sánh ba loại khoảng, và **sửa lại kết luận F-04**.
 
@@ -80,13 +81,24 @@ Không loại nào là khoảng tin cậy thị trường.
 
 **48 passed**; `run.py` chạy xong; notebook `--check` pass, 18 code cells.
 
-## PR4 — bước tiếp theo
+## PR4 — Draft PR #4, xong phần mã
 
-Viết lại báo cáo học thuật, trích dẫn APA, tham chiếu bảng/hình, placeholder bìa (nhóm, trường,
-giảng viên — giữ trống, không bịa). Sau đó tạo `docs/FINAL-REVIEW.md` bảy mục.
+- Trích dẫn chuyển sang **APA 7** (author-date). Danh mục sắp xếp theo chữ cái, không còn lặp URL.
+- Thêm **Efron (1979)** cho phần bootstrap — trước đó đây là phương pháp duy nhất được dùng mà không có nguồn. Đã đối chiếu DOI `10.1214/aos/1176344552`; Morris và cộng sự cũng được đối chiếu lại qua DOI thay vì tin theo trí nhớ.
+- Bìa có 6 trường `[CẦN ĐIỀN ...]`: trường, khoa/bộ môn, học phần và mã, giảng viên hướng dẫn, nhóm và mã số sinh viên, nơi nộp. Không trường nào được đoán.
+- Hai test mới: `test_every_reference_is_cited_and_every_citation_has_a_reference`, `test_cover_placeholders_are_marked_not_invented`.
+- **50 passed**; `run.py` chạy xong (~280 s); notebook 18 code cells, `--check` pass; `report/bao_cao.md` 49.366 ký tự, 9 bảng, 13 hình, 0 token chưa giải.
+- `docs/FINAL-REVIEW.md` đã tạo, đủ 7 mục.
+
+### Lỗi CI phát hiện ở bước này
+
+`.github/workflows/ci.yml` chỉ chạy cho pull request có base là `main`. PR3 và PR4 là stacked nên
+**chưa từng được CI kiểm tra** — danh sách check rỗng, trông giống "chưa chạy" nhưng thực chất là
+"không bao giờ chạy". Đã sửa thành chạy cho mọi base (`pull_request:` không lọc nhánh, thêm `feat/**`
+vào push), và cherry-pick cùng sửa đó sang nhánh PR3 vì nhánh đó tách trước khi sửa.
 
 ## Việc bắt buộc con người làm
 
-- Điền thông tin nhóm, trường, giảng viên, mã học phần trên bìa.
-- Quyết định có merge PR2–PR4 hay không.
-- Đọc lại phần thảo luận để xác nhận giọng văn phù hợp yêu cầu học phần.
+Xem `docs/FINAL-REVIEW.md` mục 7. Tóm tắt: điền bìa, đọc lại báo cáo, chạy lại pipeline trên máy
+mình, chạy notebook, khai báo hỗ trợ AI theo quy định lớp, quyết định merge PR2–PR4, và pin lại
+`requirements-lock.txt` nếu muốn nộp kèm môi trường chính xác.
