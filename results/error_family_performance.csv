@@ -1,0 +1,9 @@
+﻿ho_loi,n_cai,n_cach_ly,n_danh_dau,recall,n_lot,con_sai,ty_le_sot_sai,phat_hien_duoc,ghi_chu
+qty_scale,8,2,0,0.25,6,6,0.75,partly,Số cuốn nhân 10^k; phần lớn vẫn nằm dưới ngưỡng rà soát.
+qty_negative,5,5,0,1.0,0,0,0.0,yes,Số cuốn âm; vi phạm miền giá trị.
+qty_fractional,3,3,0,1.0,0,0,0.0,yes,Số cuốn không nguyên; vi phạm miền giá trị.
+price_reset,4,0,0,0.0,4,4,1.0,no,Giá bán đặt lại bằng giá gốc; mất chiết khấu nhưng giá vẫn hợp lệ.
+price_swap,10,4,0,0.4,6,6,0.6,partly,Hoán vị giá bán giữa hai dòng; chỉ lộ khi giá vượt giá gốc.
+date_swap,8,3,0,0.375,5,5,0.625,partly,"Đảo ngày/tháng khi biểu diễn được, còn lại lùi một năm."
+genre_mislabel,5,0,0,0.0,5,5,1.0,no,Thể loại hợp lệ nhưng sai; không thể phát hiện bằng miền giá trị.
+catalog_missing,6,0,6,1.0,6,6,1.0,yes,Mã sách không có trong danh mục; phát hiện bằng kiểm tra tham chiếu.

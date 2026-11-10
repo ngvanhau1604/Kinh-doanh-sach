@@ -41,9 +41,43 @@ def parse_price(v):
     except ValueError: return np.nan
 
 
-def clean(raw,catalog):
+def mask_catalog(catalog, coverage, seed):
+    """Blank a fraction of catalog attributes to make `catalog_coverage` a live assumption.
+
+    The report calls a trustworthy, complete catalog a strong assumption but never measured how
+    strong. Masking whole rows (not cells) is the realistic failure: a book is either in the
+    master data or it is not. Deterministic in `seed` so a scenario is reproducible.
+
+    Returns the masked catalog and the set of book keys that lost their record. The caller must
+    also blank those attributes on the transaction rows: in a real pipeline the transaction file
+    carries only `ma_sach` and the descriptive fields arrive through the join, so an incomplete
+    catalog means the join yields nothing. Masking the catalog alone would measure almost nothing,
+    because the simulated transaction rows happen to carry their own copy of every attribute.
+    """
+    if coverage >= 1.0:
+        return catalog, set()
+    out = catalog.copy()
+    rng = np.random.default_rng(seed + 30000)
+    n = len(out)
+    n_masked = int(round(n * (1 - coverage)))
+    if n_masked <= 0:
+        return out, set()
+    idx = rng.choice(n, n_masked, replace=False)
+    masked_keys = set(out.loc[out.index[idx], 'ma_sach'])
+    out.loc[out.index[idx], CAT_FIELDS] = np.nan
+    return out, masked_keys
+
+
+def clean(raw,catalog,params=None):
+    p=dict(PARAMS,**(params or {}))
+    catalog,masked_keys=mask_catalog(catalog,p['catalog_coverage'],p['seed'])
     if catalog.ma_sach.duplicated().any(): raise ValueError('Catalog key must be unique')
-    d=raw.copy(); before=d.copy(); stages=[]; changes=[]
+    d=raw.copy()
+    # Model the failed join: a book with no catalog record contributes no descriptive attributes.
+    if masked_keys:
+        hit=d.ma_sach.isin(masked_keys)
+        if hit.any(): d.loc[hit,CAT_FIELDS]=np.nan
+    before=d.copy(); stages=[]; changes=[]
     basecols=['ma_dong','ma_don','ma_sach']+CAT_FIELDS+['ngay_ban','kenh_ban','giam_gia_niem_yet','gia_ban','so_luong']
     def stage(name): stages.append({'buoc':name,'so_dong':len(d),'o_thieu':int(d[basecols].isna().sum().sum()),'ma_dong_lap':int(d.ma_dong.duplicated().sum())})
     stage('01. Nạp dữ liệu')
@@ -80,9 +114,16 @@ def clean(raw,catalog):
     conflict=d.ma_dong.duplicated(keep=False)
     reason=pd.Series('',index=d.index,dtype='string')
     reason.loc[conflict]='conflicting_line_id'
-    invalid_qty=d.so_luong.isna()|(d.so_luong<=0)|(d.so_luong%1!=0)|(d.so_luong>PARAMS['max_qty_review'])
+    invalid_qty=d.so_luong.isna()|(d.so_luong<=0)|(d.so_luong%1!=0)|(d.so_luong>p['max_qty_review'])
     reason.loc[invalid_qty]='quantity_needs_review'
-    bad_date=~pd.to_datetime(d.ngay_ban,format='%Y-%m-%d',errors='coerce').between(pd.Timestamp(PARAMS['start']),pd.Timestamp(PARAMS['end']))
+    bad_date=~pd.to_datetime(d.ngay_ban,format='%Y-%m-%d',errors='coerce').between(pd.Timestamp(p['start']),pd.Timestamp(p['end']))
+    # Referential integrity is flagged, not quarantined. A transaction whose book key is absent
+    # from the master catalog still carries a real price, quantity and date, so its revenue is
+    # valid even though its descriptive attributes are not. Quarantining it would discard sound
+    # money data because a label is missing, which is the wrong trade for an analysis whose
+    # primary measure is revenue. The row is kept, the attributes stay missing, and the flag
+    # records that they could not be verified.
+    d['ma_sach_ngoai_danh_muc']=~d.ma_sach.isin(master.index)
     invalid_schema=bad_date|d.ma_dong.isna()|d.ma_don.isna()|d.ma_sach.isna()|~d.the_loai.isin(GENRES)|~d.kenh_ban.isin(CHANNELS)|~d.giam_gia_niem_yet.between(0,100,inclusive='left')|d.gia_goc.isna()|(d.gia_goc<=0)|d.gia_ban.isna()|(d.gia_ban<=0)|(d.gia_ban>d.gia_goc)
     invalid_schema |= (d.diem_danh_gia.notna() & ~d.diem_danh_gia.between(1,5)) | (d.nam_xuat_ban.notna() & (~d.nam_xuat_ban.between(1900,2023) | (d.nam_xuat_ban%1!=0)))
     reason.loc[invalid_schema]='invalid_required_fields'

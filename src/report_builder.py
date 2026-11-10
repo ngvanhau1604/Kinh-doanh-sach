@@ -38,16 +38,24 @@ def _resolve(text,tables,figures):
 
     Numbers are therefore never written by hand: reordering a section renumbers the reference
     with it, and a reference to a missing asset fails loudly instead of printing a stale number.
+    Matching ignores any leading section number in either the token or the title, because the
+    token is written before the section titles are final and a hard-coded number there silently
+    rots the moment a section is inserted.
     """
+    import re as _re
+    def norm(s):
+        return _re.sub(r'^\s*\d+(?:\.\d+)*\.?\s+','',s).strip()
     def sub(m):
         kind,title=m.group(1),m.group(2)
         book=tables if kind=='Bảng' else figures
-        if title not in book: raise KeyError(f'Không tìm thấy {kind.lower()} cho mục: {title!r}')
-        return f'{kind} {book[title]}'
+        key=norm(title)
+        for name,number in book.items():
+            if norm(name)==key: return f'{kind} {number}'
+        raise KeyError(f'Không tìm thấy {kind.lower()} cho mục: {title!r}')
     return re.sub(r'\[\[(Bảng|Hình):(.+?)\]\]',sub,text)
 
 
-def build_sections(root,d,t,m,v,stages,exp,recovery,raw=None,missing=None):
+def build_sections(root,d,t,m,v,stages,exp,recovery,raw=None,missing=None,families=None,null=None,nullstats=None,coverage=None):
     sections=[]
     def section(title,paras,chart=None,table=None,caption=None):
         sections.append({'title':title,'paras':paras,'chart':chart,'table':table,'caption':caption})
@@ -55,7 +63,12 @@ def build_sections(root,d,t,m,v,stages,exp,recovery,raw=None,missing=None):
     # The report must describe the run that produced it. Reading these back from disk mixed a
     # freshly computed clean set with the previously committed raw file whenever n_lines changed.
     if missing is None: missing=pd.read_csv(root/'results/missing_sensitivity.csv')
+    if isinstance(missing,tuple): missing=missing[0]
     if raw is None: raw=pd.read_csv(root/'data/raw/book_sales_raw.csv')
+    if families is None: families=pd.read_csv(root/'results/error_family_performance.csv')
+    if null is None: null=pd.read_csv(root/'results/null_distribution.csv')
+    if nullstats is None: nullstats=pd.read_csv(root/'results/null_summary.csv')
+    if coverage is None: coverage=pd.read_csv(root/'results/catalog_coverage.csv')
     q=pd.read_csv(root/'data/audit/quarantine.csv')
     p=PARAMS
     ndays=len(pd.date_range(p['start'],p['end']))
@@ -97,13 +110,22 @@ def build_sections(root,d,t,m,v,stages,exp,recovery,raw=None,missing=None):
       caption='Số dòng, ô thiếu và mã dòng lặp qua từng bước làm sạch')
     section('4. Kiểm chứng chất lượng: đúng và đủ là hai tiêu chí',[
         f'Trên {f(m["lines"])} mã dòng giữ lại, tám trường được đối chiếu với dữ liệu chuẩn đều đạt tỷ lệ khớp 100%: giá bán, số lượng, giá trị bán hàng, điểm, năm xuất bản, tác giả, NXB và thể loại. Kết quả chỉ áp dụng cho các trường và lỗi đã thử; không có nghĩa mọi lỗi ngoài thực tế đều được xử lý đúng.',
-        f'Có {f(len(q))} dòng nguồn bị cách ly, tương ứng {f(q.ma_dong.nunique())} mã dòng nghiệp vụ. {f(p["n_conflicts"]).capitalize()} mã xung đột có hai biến thể mỗi mã. Tỷ lệ giữ lại trên {f(p["n_lines"])} mã gốc là {f(v["retained_pct"],3)}%. Precision/recall cách ly trên tập lỗi biết trước đều bằng {f(v["quarantine_precision"]*100,1)}% / {f(v["quarantine_recall"]*100,1)}%; mẫu lỗi do tác giả thiết kế nên chưa chứng minh được hiệu năng trên lỗi chưa biết.',
+        f'Có {f(len(q))} dòng nguồn bị cách ly, tương ứng {f(q.ma_dong.nunique())} mã dòng nghiệp vụ. {f(p["n_conflicts"]).capitalize()} mã xung đột có hai biến thể mỗi mã. Tỷ lệ giữ lại trên {f(p["n_lines"])} mã gốc là {f(v["retained_pct"],3)}%.',
+        f'Độ chính xác của cách ly đạt {f(v["quarantine_precision"]*100,1)}%: mọi dòng bị cách ly đều thực sự mang lỗi. Độ phủ chỉ đạt {f(v["quarantine_recall"]*100,1)}% và đây mới là con số cần đọc. Bản trước công bố 100%/100% vì mẫu số chỉ gồm hai họ lỗi mà quy tắc vốn nhắm tới, tức là quy tắc được đo bằng chính điều kiện nó đã dùng để cách ly. Khi tính trên toàn bộ {f(int(families.n_cai.sum()))} dòng mang lỗi thuộc tám họ, khoảng {f(100-v["quarantine_recall"]*100,1)}% lỗi vẫn nằm lại trong tập phân tích.',
+        '[[Bảng:3.4 Hiệu năng phát hiện theo họ lỗi]] tách kết quả theo từng họ. Quy tắc miền giá trị bắt được lỗi số lượng âm, số lượng không nguyên và mã sách không tồn tại. Nó không thể bắt lỗi vẫn nằm trong miền hợp lệ: giá bị đặt lại bằng giá gốc, giá bị hoán vị giữa hai dòng, ngày bị đảo, và thể loại sai nhưng hợp lệ. Với các họ đó, cột còn sai đo mức độ ảnh hưởng thực tế thay vì che nó bằng một tỷ lệ phát hiện cao.',
         f'Tổng chuẩn là {f(v["truth_revenue"])} đồng; tập sạch có {revenue} đồng, sai lệch {f(v["relative_revenue_error_pct"],3)}%. Trên đúng tập mã được giữ lại, sai lệch tổng bằng {f(v["retained_revenue_error"])} đồng. Khi không thể phục hồi số lượng gốc, việc cách ly là thận trọng nhưng làm thiếu tổng bán hàng; cần công bố mức ảnh hưởng này.',
         f'Có {f(m["iqr_flags"])} dòng bị gắn cờ IQR, gồm cả trường hợp lượng cao hợp lệ. Cần phân biệt kiểm tra hợp lệ theo miền dữ liệu với đánh giá hiếm gặp theo phân phối. Không dùng tỷ lệ ô thiếu bằng 0 làm thước đo duy nhất của chất lượng.',
         'Mỗi dòng thô phải có đúng một trạng thái cuối: giữ, gộp bản sao hoặc cách ly. Các kiểm tra tự động còn bao phủ giá trị biên, mâu thuẫn khóa, dữ liệu thiếu danh mục, dòng mua nhiều, các tổng theo nhóm và tái lập cùng seed. Các kết quả thí nghiệm không thay cho xác nhận độc lập của giảng viên.',
         '[[Bảng:3.3 Đánh giá chất lượng sau xử lý]] đối chiếu từng trường với dữ liệu chuẩn trên tập giữ lại; cột thứ hai là số ô khớp trên số ô so sánh.',
     ],table=[['Trường kiểm chứng','Khớp / đối chiếu']]+[[r.cot,f'{f(r.so_khop)} / {f(r.so_so_sanh)}'] for r in recovery.itertuples()],
       caption='Đối chiếu tám trường với dữ liệu chuẩn trên tập giữ lại')
+    section('4.1 Hiệu năng phát hiện theo họ lỗi',[
+        'Một tỷ lệ phát hiện gộp không cho biết quy tắc làm sạch mạnh ở đâu và yếu ở đâu. Tám họ lỗi dưới đây được cài với số lượng ngẫu nhiên theo phân phối Poisson, nên số lỗi mỗi lần chạy cũng là biến ngẫu nhiên. Nhờ vậy tỷ lệ giữ lại có sai số thực thay vì là một hằng số thiết kế.',
+        'Cột tỷ lệ phát hiện là số dòng bị cách ly chia số dòng mang lỗi. Cột còn sai là số dòng mang lỗi vẫn nằm trong tập sạch và vẫn khác dữ liệu chuẩn; đây là thước đo thiệt hại thật, vì một dòng có thể bị cách ly vì lý do khác mà vẫn được tính là bắt được.',
+        'Ba họ không thể phát hiện bằng miền giá trị là lỗi bản chất của dữ liệu, không phải thiếu sót của mã. Giá bị đặt lại bằng giá gốc, giá bị hoán vị, ngày bị đảo và thể loại sai đều tạo ra giá trị hợp lệ. Chỉ dữ liệu đối chiếu bên ngoài hoặc kiểm tra chéo nguồn mới phát hiện được. Vì vậy bài giữ các dòng này lại, công bố ảnh hưởng và không dựng một quy tắc đọc dữ liệu chuẩn để xóa chúng.',
+        '[[Hình:3.4 Hiệu năng phát hiện theo họ lỗi]] xếp các họ theo tỷ lệ phát hiện, tô màu theo khả năng phát hiện. [[Bảng:3.4 Hiệu năng phát hiện theo họ lỗi]] ghi số lượng, tỷ lệ phát hiện và số dòng còn sai cho từng họ.',
+    ],'09_error_family.png',table=[['Họ lỗi','Số dòng','Bị cách ly','Tỷ lệ phát hiện','Còn sai','Phát hiện được']]+[[r.ho_loi,f(r.n_cai),f(r.n_cach_ly),f(r.recall*100,0)+'%',f(r.con_sai),r.phat_hien_duoc] for r in families.itertuples()],
+      caption='Hiệu năng phát hiện của quy trình làm sạch theo từng họ lỗi được cài') 
     top=t['genre'].iloc[0]
     section('5. Thể loại và cơ cấu giá trị bán hàng',[
         f'Trong kịch bản cơ sở, {top.the_loai} dẫn đầu giá trị bán hàng với {f(top.doanh_thu)} đồng, chiếm {f(top.ty_trong,2)}%; lượng bán là {f(top.so_luong)} cuốn. Đây là tổng hợp trên tập sạch gồm {f(m["lines"])} dòng. [[Hình:4.1 Cơ cấu theo thể loại]] tách hai thước đo để không so chiều cao cột ở các đơn vị khác nhau.',
@@ -131,10 +153,22 @@ def build_sections(root,d,t,m,v,stages,exp,recovery,raw=None,missing=None):
     ],'04_discount.png',caption='Phân phối số cuốn mỗi dòng theo nhóm giảm giá niêm yết (thang log) và mật độ giá bán – lượng bán')
     section('9. Điểm sách và tổng lượng ở cấp mã sách',[
         f'Điểm là thuộc tính giả lập cố định của sách. Vì một sách có nhiều dòng, hình chính tổng hợp lên cấp ma_sach, n={f(m["books"])}. Pearson giữa điểm và tổng cuốn ở cấp sách là {f(m["rating_book_qty_r"],3)}; hệ số ở cấp dòng là {f(m["rating_qty_r"],3)}. Hai giá trị trả lời hai câu hỏi khác nhau, không thể thay thế tùy ý.',
-        'Điểm được sinh độc lập với cơ chế chọn sách và lượng, nên kết quả không cung cấp bằng chứng về vai trò của đánh giá thật. Không có lịch sử đánh giá, lượt xem, quảng cáo hoặc đo niềm tin để giải thích hành vi khách hàng.',
+        'Điểm được sinh độc lập với cơ chế chọn sách và lượng, nên tương quan ở cấp quần thể bằng 0 theo thiết kế. Giá trị quan sát ở một seed vì thế chỉ là một lần rút từ phân phối null, không phải một phát hiện. Để kiểm chứng, dữ liệu được sinh lại qua nhiều seed và tính lại cùng hệ số; kết quả ở [[Bảng:4.6 Kiểm chứng bằng phân phối null]].',
+        f'Qua {f(len(null))} seed, hệ số cấp sách có trung bình {f(nullstats.set_index("metric").loc["rating_book_qty_r","mean"],3)} và độ lệch chuẩn {f(nullstats.set_index("metric").loc["rating_book_qty_r","sd"],3)}; khoảng 95% thực nghiệm là [{f(nullstats.set_index("metric").loc["rating_book_qty_r","p025"],3)}; {f(nullstats.set_index("metric").loc["rating_book_qty_r","p975"],3)}]. Giá trị của kịch bản cơ sở là {f(m["rating_book_qty_r"],3)}, nằm ngoài khoảng đó và ở phân vị thứ {f(100*(null["rating_book_qty_r"].dropna()<m["rating_book_qty_r"]).mean(),1)} của phân phối null.',
+        'Kết quả này không ủng hộ cách đọc ban đầu. Giá trị quan sát không phải một lần rút bình thường từ phân phối null, nên có một cơ chế tạo ra nó và cơ chế đó cần được tìm. Nó cũng không phải bằng chứng cho một quan hệ thị trường, vì điểm đánh giá được sinh độc lập với lượng trong mô hình. Cách đọc đúng là: mô hình có một nguồn tương quan phụ chưa được khai báo, và việc nó nằm ngoài khoảng 95% là dấu hiệu cần điều tra chứ không phải kết quả để trích dẫn.',
+        'Một nguồn khả dĩ là cách quy trình làm sạch ghép dòng. Các họ lỗi được cài không đều giữa các sách, và việc cách ly theo mã sách không tra được hoặc theo số lượng bất thường có thể loại bỏ dòng của một số sách nhiều hơn các sách khác. Khi đó tổng lượng cấp sách bị cắt không đều, và một tương quan nhỏ xuất hiện dù mô hình sinh không có. Bài ghi nhận đây là giả thuyết, không phải kết luận, và để lại như một hạn chế mở.',
+        'Bản trước nêu một ngưỡng 1,5% mà không chứng minh. Kiểm chứng lại cho thấy ngưỡng đó vừa không cần thiết vừa sai về logic: điều cần biết là vị trí của giá trị quan sát trong phân phối null, và phân phối đó phải được tính chứ không được giả định. Việc tính đúng đã đổi kết luận từ chỗ giả định giá trị nằm trong khoảng sang chỗ phát hiện nó nằm ngoài.',
+        'Không có lịch sử đánh giá, lượt xem, quảng cáo hoặc đo niềm tin để giải thích hành vi khách hàng.',
         f'Có {f(m["rating_known"])} dòng có điểm trong kịch bản đầy đủ danh mục; {f(m["good_rating_pct"],2)}% số dòng có điểm từ 4 trở lên. Đây là tỷ lệ dòng mang điểm sách giả lập, không phải tỷ lệ khách hàng hài lòng. Bài không tính p-value từ các dòng lặp của cùng sách.',
-        '[[Hình:4.5 Điểm sách và lượng bán]] chấm từng mã sách theo điểm và tổng cuốn; hệ số in trên hình là tương quan cấp sách, không phải cấp dòng.'
+        '[[Hình:4.5 Điểm sách và lượng bán]] chấm từng mã sách theo điểm và tổng cuốn; hệ số in trên hình là tương quan cấp sách, không phải cấp dòng. [[Hình:4.6 Kiểm chứng bằng phân phối null]] đặt giá trị quan sát lên phân phối null để thấy nó không tách khỏi nhiễu.'
     ],'05_rating.png',caption='Điểm giả lập và tổng số cuốn ở cấp mã sách (n = số mã sách trong tập sạch)')
+    section('9.1 Kiểm chứng bằng phân phối null',[
+        f'Phân phối null được xây bằng cách sinh lại toàn bộ dữ liệu cho {f(len(null))} seed khác nhau, chạy lại quy trình làm sạch và tính cùng các hệ số. Đây không phải hoán vị nhãn trên một tập cố định: mỗi seed là một lần sinh độc lập theo đúng mô hình, nên phân phối thu được là phân phối của chính đại lượng dưới giả thuyết không của mô hình.',
+        'Khoảng 95% là phân vị thực nghiệm 2,5% và 97,5% của phân phối đó. Nó không phải khoảng tin cậy cho một tham số thị trường, vì ở đây không có thị trường nào. Nó trả lời đúng một câu hỏi: với mô hình này, một giá trị như quan sát được có bình thường không.',
+        'Cùng cách kiểm chứng được áp cho tương quan giảm giá – lượng. Hệ số này khác 0 một cách hệ thống vì mức giảm giá nằm trong công thức sinh lượng, nên phân phối null của nó lệch hẳn khỏi 0. Điều đó xác nhận phép kiểm chứng phân biệt được tín hiệu do thiết kế với nhiễu, thay vì luôn trả về cùng một kết luận.',
+        '[[Hình:4.6 Kiểm chứng bằng phân phối null]] vẽ hai phân phối null cạnh nhau, kèm giá trị của kịch bản cơ sở và khoảng 95%. [[Bảng:4.6 Kiểm chứng bằng phân phối null]] ghi trung bình, độ lệch chuẩn và phân vị cho từng chỉ tiêu.'
+    ],'10_null_band.png',table=[['Chỉ tiêu','Trung bình','Độ lệch chuẩn','Phân vị 2,5%','Phân vị 97,5%']]+[[r.metric,f(r['mean'],3),f(r.sd,3),f(r.p025,3),f(r.p975,3)] for _,r in nullstats.iterrows()],
+      caption=f'Phân phối null của các chỉ tiêu tương quan qua {len(null)} seed độc lập')
     section('10. Tương quan và biến được tính từ công thức',[
         'Ma trận [[Hình:4.6 Cấu trúc tương quan]] là mô tả Pearson ở cấp dòng, gồm cả dòng mua nhiều. Hệ số tuyến tính nhạy với những quan sát lớn, không bao quát mọi quan hệ phi tuyến. Kết quả ở cấp sách và phân tích bỏ dòng >150 cuốn được tách riêng, không thay đổi âm thầm tập quan sát.',
         'Giá trị bán hàng được định nghĩa bằng giá bán × số lượng; giảm giá thực tế được định nghĩa từ giá bán/giá gốc. Vì vậy nhiều ô tương quan xuất hiện từ chính quan hệ tính toán. Chúng không là bằng chứng độc lập để chọn chiến lược tăng giá hay tăng sản lượng.',
@@ -155,17 +189,27 @@ def build_sections(root,d,t,m,v,stages,exp,recovery,raw=None,missing=None):
     ],'08_sensitivity.png',table=[['Kịch bản','Q4 (%)','r (bỏ >150)','Sai lệch T (%)']]+[[s,f(r.q4,2),f(r.r,3),f(r.err,3)] for s,r in summary.iterrows()],
       caption='Trung bình ba kịch bản độ nhạy theo tỷ trọng quý IV, tương quan giảm giá – lượng và sai lệch tổng')
     section('13. Điền khuyết: lợi ích và giới hạn',[
-        'Kịch bản chính khôi phục thuộc tính sách từ danh mục được giả định đáng tin. Đây là đối chiếu nghiệp vụ, không phải suy luận điểm đánh giá từ các giao dịch tương tự. Một kiểm tra riêng loại bỏ thông tin tra cứu và che ngẫu nhiên 2%, 10%, 25% điểm trên dữ liệu chuẩn, dùng cùng seed 42.',
-        'So sánh giữ thiếu với điền trung bình theo thể loại. MAE chỉ được tính trên những ô bị che và được điền; phương án giữ thiếu không có MAE phục hồi vì không tạo dự đoán. Giữ thiếu làm giảm độ bao phủ nhưng tránh gán độ chính xác giả; điền trung bình đủ ô nhưng không khôi phục được khác biệt từng sách.',
-        'Đây là thí nghiệm chẩn đoán với một seed và cơ chế thiếu được cài ngẫu nhiên, chưa phải đánh giá toàn diện. Nếu điểm thấp dễ bị thiếu hơn hoặc danh mục sai, kết quả có thể khác. Dữ liệu thật cần kiểm tra nguyên nhân thiếu và phân tích nhiều cơ chế trước khi chọn phương pháp.',
+        'Kịch bản chính khôi phục thuộc tính sách từ danh mục được giả định đáng tin. Đây là đối chiếu nghiệp vụ, không phải suy luận điểm đánh giá từ các giao dịch tương tự. Một thí nghiệm riêng loại bỏ thông tin tra cứu và che điểm đánh giá trên dữ liệu chuẩn, rồi so sánh bốn phương án xử lý.',
+        f'Thí nghiệm có ba cơ chế thiếu, ba tỷ lệ che và bốn phương án, mỗi ô được lặp qua {f(int(missing.n_seeds.max()))} seed. Ba cơ chế cần thiết vì chúng hỏng theo cách khác nhau. MCAR che ngẫu nhiên nên bỏ qua được. MAR cho xác suất thiếu phụ thuộc giá bán, một biến quan sát được, nên điều kiện hóa theo biến đó có thể khôi phục trung bình. MNAR cho xác suất thiếu phụ thuộc chính điểm bị thiếu, nên mọi phương án điền đều bị kéo về phía trung bình của phần quan sát được và không phương án nào sửa được điều đó.',
+        'MAE chỉ tính trên những ô bị che và được điền; phương án giữ thiếu không có MAE vì không tạo dự đoán. Giữ thiếu làm giảm độ bao phủ nhưng tránh gán độ chính xác giả. Điền trung bình đủ ô nhưng không khôi phục được khác biệt từng sách.',
+        f'Kết quả chính: ở cùng tỷ lệ che, MAE của MNAR cao hơn MCAR một cách hệ thống, đúng như lý thuyết dự đoán. Chênh lệch giữa các phương án điền nhỏ hơn nhiều so với chênh lệch giữa các cơ chế thiếu. Vì vậy lựa chọn phương án điền là câu hỏi thứ yếu; câu hỏi chính là cơ chế thiếu có phụ thuộc vào giá trị bị thiếu hay không, và điều đó phải được kiểm tra bằng dữ liệu thật chứ không suy ra từ đây.',
+        f'Mỗi ô có {f(int(missing.n_seeds.max()))} seed nên sai số chuẩn Monte Carlo của MAE trung bình được ghi trong cột mcse_mean. Với tỷ lệ che thấp, sai số này tương đối lớn so với chênh lệch giữa các phương án, nên không nên đọc thứ hạng phương án ở tỷ lệ 2% như một kết luận.',
         'Thử nghiệm tự động cũng cung cấp danh mục rỗng để đảm bảo chương trình giữ điểm thiếu và ghi không rõ tác giả thay vì tự bịa. Các cờ khoi_phuc_* đi cùng dữ liệu sạch giúp tách dữ liệu quan sát với dữ liệu được phục hồi.',
-        '[[Bảng:5.2 Thí nghiệm dữ liệu thiếu]] so sánh hai phương án theo tỷ lệ che; cột MAE để trống ở phương án giữ thiếu vì không tạo dự đoán.',
-    ],table=[['Tỷ lệ che','Phương pháp','Bao phủ','MAE ô điền']]+[[f(r.missing_rate*100,0)+'%',r.method,f(r.coverage*100,1)+'%','Không áp dụng' if pd.isna(r.mae_imputed) else f(r.mae_imputed,3)] for r in missing.itertuples()],
-      caption='Độ bao phủ và MAE của hai phương án xử lý dữ liệu thiếu theo tỷ lệ che')
+        '[[Hình:5.2 Thí nghiệm dữ liệu thiếu]] vẽ MAE theo tỷ lệ che cho từng cơ chế, mỗi đường là một phương án. [[Bảng:5.2 Thí nghiệm dữ liệu thiếu]] ghi MAE trung bình, độ lệch chuẩn và sai số chuẩn Monte Carlo cho từng ô.',
+    ],'11_missing_mechanism.png',table=[['Cơ chế','Tỷ lệ che','Phương pháp','MAE','MCSE']]+[[r.mechanism,f(r.missing_rate*100,0)+'%',r.method,'Không áp dụng' if pd.isna(r.mae_mean) else f(r.mae_mean,3),'' if pd.isna(r.mcse_mean) else f(r.mcse_mean,3)] for r in missing.itertuples()],
+      caption=f'MAE trên ô điểm đánh giá bị che theo cơ chế thiếu, tỷ lệ che và phương án xử lý ({int(missing.n_seeds.max())} seed mỗi ô)')
+    section('13.1 Độ bao phủ danh mục như một giả định có thể đo',[
+        'Báo cáo gọi danh mục đáng tin và đầy đủ là một giả định mạnh nhưng trước đây không đo được nó mạnh đến đâu. Thí nghiệm dưới đây che toàn bộ thuộc tính của một tỷ lệ mã sách trong danh mục, theo nguyên dòng chứ không theo ô, vì trong thực tế một cuốn sách hoặc có trong dữ liệu chủ hoặc không.',
+        'Cách mô phỏng phải phản ánh đúng đường đi của dữ liệu. Trong một quy trình thật, tệp giao dịch chỉ mang mã sách, còn các thuộc tính mô tả đến từ phép nối với danh mục. Vì vậy khi một mã sách không có trong danh mục, dòng giao dịch của nó không có tên tác giả, nhà xuất bản hay điểm đánh giá. Thí nghiệm áp đúng hệ quả đó thay vì chỉ xóa thuộc tính trong danh mục, vì bản thân tệp giao dịch mô phỏng cũng mang sẵn bản sao các trường này.',
+        'Kết quả không nhẹ như giả định ban đầu. Quy trình hiện cách ly mọi dòng có mã sách không tra được, vì không thể kiểm chứng một bản ghi mà danh mục không xác nhận. Vì vậy độ bao phủ danh mục không chỉ làm mất thuộc tính mô tả mà còn làm mất chính dòng giao dịch: ở mức bao phủ 50%, khoảng một nửa giá trị bán hàng biến khỏi tập phân tích. Đây là đánh đổi có chủ ý giữa tính kiểm chứng và độ đầy đủ, và nó cho thấy giả định danh mục đầy đủ chịu trách nhiệm cho phần lớn độ đầy đủ của toàn bộ kết quả.',
+        'Một phương án khác là giữ dòng lại và ghi thuộc tính không rõ, đổi độ đầy đủ lấy tính kiểm chứng. Bài không chọn phương án đó cho kịch bản chính vì mọi kết luận theo thể loại, tác giả hay nhà xuất bản sẽ dựa trên nhãn không xác minh được. [[Hình:5.3 Độ bao phủ danh mục]] cho thấy hai hệ quả này tách nhau, và [[Bảng:5.3 Độ bao phủ danh mục]] ghi từng mức che kèm số dòng bị cách ly.',
+    ],'12_catalog_coverage.png',table=[['Độ bao phủ','Dòng giữ lại','Bị cách ly (%)','Sai lệch giá trị (%)','Mã ngoài danh mục']]+[[f(r.catalog_coverage*100,0)+'%',f(r.lines),f(r.quarantined_pct,1),f(r.relative_revenue_error_pct,3),f(r.unknown_book_key)] for r in coverage.itertuples()],
+      caption='Ảnh hưởng của độ bao phủ danh mục lên độ đầy đủ dòng và giá trị bán hàng; cột cuối là họ lỗi cài sẵn nên không đổi theo độ bao phủ')
     section('14. Ý nghĩa thực hành, hạn chế và kết luận',[
         'Ứng dụng có thể chuyển sang nhà sách thật là quy trình quản trị dữ liệu: dùng mã dòng ổn định; giữ danh mục sách đã xác minh; tách dữ liệu nguồn và dữ liệu xử lý; cách ly thay vì xóa mất dấu; đối soát tổng; công khai bộ lọc và mẫu số. Các bảng EDA có thể hỗ trợ hình thành câu hỏi về danh mục, kênh và thời điểm, sau đó kiểm tra bằng dữ liệu kinh doanh thực.',
         'Không có căn cứ trong bài để cắt tồn kho 40%, dồn ngân sách 70%, cam kết lợi nhuận 15% hay dự báo tăng trưởng 40%. Nếu cần các quyết định này, nhóm phải thu thập tồn kho, giá vốn, phí, quảng cáo, hủy/hoàn và dữ liệu khách hàng được phép sử dụng; đồng thời xác định thiết kế đánh giá phù hợp.',
-        'Hạn chế chính: mọi tham số chưa hiệu chỉnh; danh mục hoàn toàn giả lập; chỉ một loại đơn một đầu sách; chỉ 300 sách và 2 năm; lỗi cài trước có dạng đơn giản; danh mục chuẩn đáng tin là giả định mạnh; thiếu ngẫu nhiên không đại diện mọi cơ chế; 50 lần mô phỏng cho mỗi kịch bản chưa đủ để khảo sát mọi trường hợp; không đo ngoại lực và chi phí.',
+        'Hạn chế chính: mọi tham số chưa hiệu chỉnh; danh mục hoàn toàn giả lập; chỉ một loại đơn một đầu sách; chỉ 300 sách và 2 năm; lỗi cài vẫn do tác giả thiết kế nên chưa chứng minh hiệu năng trên lỗi chưa biết; danh mục chuẩn đáng tin là giả định mạnh và nay đã đo được ảnh hưởng của nó; thiếu ngẫu nhiên được mô phỏng theo ba cơ chế nhưng vẫn là giả định về cơ chế; số lần mô phỏng chưa đủ để khảo sát mọi trường hợp; không đo ngoại lực và chi phí.',
+        'Một hạn chế cần nói rõ vì nó là kết quả, không phải sơ suất: khoảng một nửa số lỗi được cài vẫn nằm lại trong tập phân tích. Các họ lỗi tạo ra giá trị hợp lệ như giá bị đặt lại, giá bị hoán vị, ngày bị đảo và thể loại sai không thể phát hiện bằng miền giá trị, và bài không dựng quy tắc đọc dữ liệu chuẩn để xóa chúng. Vì vậy tổng giá trị bán hàng trong kịch bản cơ sở cao hơn dữ liệu chuẩn vài phần trăm. Con số đó được công bố, không được làm mất.',
         'Kết luận: bài hoàn thành chu trình xây dựng, xử lý, EDA và trực quan hóa trên dữ liệu mô phỏng, có đối soát bằng dữ liệu chuẩn và đánh giá ảnh hưởng của loại bản ghi. Kết quả cho thấy có thể phục hồi chính xác các trường đã kiểm tra trên tập giữ lại nhưng tổng kỳ vẫn thiếu do cách ly. Ý nghĩa khoa học nằm ở tính kiểm chứng và việc nhận biết giới hạn, không ở khẳng định một quy luật thị trường mới.',
         'Hướng tiếp theo hợp lý là lấy một bộ giao dịch ẩn danh có quyền sử dụng từ nhà sách, xác minh danh mục và so sánh phân phối với mô hình. Chỉ sau đó mới hiệu chỉnh tham số hoặc đề xuất dự báo; nếu không có dữ liệu thật, mở rộng các cơ chế lỗi và số lần mô phỏng, công khai chúng là thí nghiệm giả lập.',
         'Trách nhiệm nhóm: điền thông tin học phần, thành viên và đóng góp có thật; đọc và chạy lại notebook; có thể giải thích các giả định và giới hạn; khai báo hỗ trợ AI theo yêu cầu của lớp. Bản này không xác nhận một khảo sát doanh nghiệp hoặc thu thập thị trường chưa từng diễn ra.'
@@ -177,7 +221,8 @@ def build_sections(root,d,t,m,v,stages,exp,recovery,raw=None,missing=None):
         'README.md là điểm bắt đầu; docs/QUY-TRINH.md mô tả phương pháp; data/data_dictionary.md định nghĩa trường; docs/DOI-SOAT-BAN-CU.md lưu các số tính lại từ bản gốc; docs/PHAN-VIEC-NHOM.md ghi phần công việc cần nhóm cung cấp. Các nguồn phương pháp trên không chứng minh tính đại diện của dữ liệu.'
     ])
     from .academic_report import enrich
-    return enrich(sections,m,v,stages,q,raw)
+    return enrich(sections,m,v,stages,q,raw,families=families,null=null,nullstats=nullstats,
+                  coverage=coverage,missing=missing,exp=exp)
 
 
 def render_text(sections):
@@ -208,8 +253,9 @@ def render_text(sections):
     return '\n'.join(md),''.join(web)
 
 
-def build_report(root,d,t,m,v,stages,exp,recovery,raw=None,missing=None):
-    sections=build_sections(root,d,t,m,v,stages,exp,recovery,raw=raw,missing=missing)
+def build_report(root,d,t,m,v,stages,exp,recovery,raw=None,missing=None,families=None,null=None,nullstats=None,coverage=None):
+    sections=build_sections(root,d,t,m,v,stages,exp,recovery,raw=raw,missing=missing,
+                            families=families,null=null,nullstats=nullstats,coverage=coverage)
     write_outputs(root,sections)
 
 

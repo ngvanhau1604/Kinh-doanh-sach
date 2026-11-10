@@ -136,17 +136,21 @@ def test_report_contains_no_base_case_literals_when_sample_changes(monkeypatch):
 def test_report_numbers_are_vietnamese_formatted(monkeypatch):
     """Regression: f'{n:,}' produced English grouping (6,660) inside Vietnamese prose.
 
-    A bare '99,692' is a legitimate Vietnamese decimal and structurally identical to an English
-    thousands group, so this checks the exact strings the old code emitted rather than guessing
-    from a pattern.
+    The figures are derived from the run rather than hardcoded: an earlier version of this test
+    pinned the base-case line count, so it would have passed a report that quoted a stale sample
+    and failed a correct one after the simulation changed. What must hold is the format, not the
+    value.
     """
-    md, _ = _report_text(monkeypatch, 6500)
-    for english in ['6,660', '6,480', '6,500', '2,969,430,000', '2,978,555,000', '30,790', '96,441']:
+    md, metrics = _report_text(monkeypatch, 6500)
+    def vn(n):
+        return f'{n:,}'.replace(',', '.')
+    lines = vn(metrics['lines'])
+    revenue = vn(metrics['revenue'])
+    assert lines in md, f'số dòng {lines} không xuất hiện đúng định dạng tiếng Việt'
+    assert revenue in md, f'doanh thu {revenue} không xuất hiện đúng định dạng tiếng Việt'
+    # English grouping of these exact quantities must not appear.
+    for english in [f'{metrics["lines"]:,}', f'{metrics["revenue"]:,}']:
         assert english not in md, f'Còn định dạng số kiểu Anh: {english}'
-    # The same quantities must appear with Vietnamese separators.
-    assert '6.660' in md and '6.480' in md
-    assert '2.969.430.000' in md
-    assert '30.790' in md
     # Vietnamese decimal: comma before the fraction.
     assert re.search(r'\d,\d+%', md)
 
