@@ -218,25 +218,25 @@ Nếu muốn nghiên cứu tác động khuyến mãi trên dữ liệu thực, 
 
 # 4.5 Điểm sách và lượng bán
 
-Điểm là thuộc tính giả lập cố định của sách. Vì một sách có nhiều dòng, hình chính tổng hợp lên cấp ma_sach, n=301. Pearson giữa điểm và tổng cuốn ở cấp sách là 0,105; hệ số ở cấp dòng là 0,012. Hai giá trị trả lời hai câu hỏi khác nhau, không thể thay thế tùy ý.
+Điểm là thuộc tính giả lập cố định của sách. Vì một sách có nhiều dòng, hình chính tổng hợp lên cấp mã sách, n=301. Pearson giữa điểm và tổng cuốn ở cấp sách là 0,105; hệ số ở cấp dòng là 0,012. Hai giá trị trả lời hai câu hỏi khác nhau, không thể thay thế tùy ý. Chúng cũng không được tính trên cùng một đơn vị: hệ số cấp sách gộp theo cặp mã sách và tên sách, vì các dòng không tra được mã sách mang khóa thay thế BK9999 và nếu chỉ gộp theo mã thì nhiều sách khác nhau bị nhập thành một.
 
 Điểm được sinh độc lập với cơ chế chọn sách và lượng, nên tương quan ở cấp quần thể bằng 0 theo thiết kế. Giá trị quan sát ở một seed vì thế chỉ là một lần rút từ phân phối null, không phải một phát hiện. Để kiểm chứng, dữ liệu được sinh lại qua nhiều seed và tính lại cùng hệ số; kết quả ở Bảng 5.
 
-Qua 200 seed, hệ số cấp sách có trung bình 0,000 và độ lệch chuẩn 0,058; khoảng 95% thực nghiệm là [-0,112; 0,112]. Giá trị của kịch bản cơ sở là 0,105, nằm ngoài khoảng đó và ở phân vị thứ 96,5 của phân phối null.
+Qua 200 seed, hệ số cấp sách có trung bình 0,000 và độ lệch chuẩn 0,058; khoảng 95% thực nghiệm là [-0,112; 0,107]. Giá trị của kịch bản cơ sở là 0,105, tức phân vị thứ 96,5 của phân phối null. Giá trị này nằm trong khoảng 95%.
 
-Kết quả này không ủng hộ cách đọc ban đầu. Giá trị quan sát không phải một lần rút bình thường từ phân phối null, nên có một cơ chế tạo ra nó và cơ chế đó cần được tìm. Nó cũng không phải bằng chứng cho một quan hệ thị trường, vì điểm đánh giá được sinh độc lập với lượng trong mô hình. Cách đọc đúng là: mô hình có một nguồn tương quan phụ chưa được khai báo, và việc nó nằm ngoài khoảng 95% là dấu hiệu cần điều tra chứ không phải kết quả để trích dẫn.
+Cách đọc đúng là giá trị quan sát tương thích với phân phối null: nó không tách khỏi mức dao động do chính mô hình sinh ra, nên không được trình bày như một phát hiện. Điều không được làm là suy ra một quan hệ thị trường: điểm đánh giá được sinh độc lập với lượng trong mô hình, nên ở cấp quần thể tương quan bằng 0 theo thiết kế. Một giá trị nằm trong khoảng null nghĩa là nó tương thích với chính tính ngẫu nhiên của mô hình, và bài không được biến nó thành phát hiện.
 
-Một nguồn khả dĩ là cách quy trình làm sạch ghép dòng. Các họ lỗi được cài không đều giữa các sách, và việc cách ly theo mã sách không tra được hoặc theo số lượng bất thường có thể loại bỏ dòng của một số sách nhiều hơn các sách khác. Khi đó tổng lượng cấp sách bị cắt không đều, và một tương quan nhỏ xuất hiện dù mô hình sinh không có. Bài ghi nhận đây là giả thuyết, không phải kết luận, và để lại như một hạn chế mở.
+Vị trí trong khoảng không phải phép thử duy nhất cần báo cáo. Một giá trị ở phân vị 96,5 nằm trong khoảng trung tâm 95% nhưng vẫn ở vùng đuôi, nên bài ghi cả hai thông tin thay vì chỉ chọn một kết luận nhị phân. Với 200 seed, bản thân các phân vị thực nghiệm cũng có sai số, nên việc tuyên bố một giá trị "vừa ra ngoài" hay "vừa ở trong" là không đáng tin về mặt thống kê.
 
-Bản trước nêu một ngưỡng 1,5% mà không chứng minh. Kiểm chứng lại cho thấy ngưỡng đó vừa không cần thiết vừa sai về logic: điều cần biết là vị trí của giá trị quan sát trong phân phối null, và phân phối đó phải được tính chứ không được giả định. Việc tính đúng đã đổi kết luận từ chỗ giả định giá trị nằm trong khoảng sang chỗ phát hiện nó nằm ngoài.
+Bản trước nêu một ngưỡng 1,5% mà không chứng minh, và một bản trung gian kết luận giá trị nằm ngoài khoảng. Cả hai đều sai ở chỗ khác nhau. Ngưỡng 1,5% là giả định không có cơ sở. Kết luận "nằm ngoài" đến từ việc tính phân vị trên một phép gộp sách khác với phép gộp dùng để tính giá trị quan sát: các dòng không tra được mã sách mang khóa thay thế BK9999, và gộp chỉ theo mã sách đã nhập nhiều sách khác nhau thành một. Khi hai bên dùng cùng một đơn vị, giá trị quan sát nằm trong khoảng. Đây là lý do phép kiểm chứng phải được tính lại chứ không được kế thừa kết luận từ bản trước.
 
 Không có lịch sử đánh giá, lượt xem, quảng cáo hoặc đo niềm tin để giải thích hành vi khách hàng.
 
 Có 6.478 dòng có điểm trong kịch bản đầy đủ danh mục; 74,22% số dòng có điểm từ 4 trở lên. Đây là tỷ lệ dòng mang điểm sách giả lập, không phải tỷ lệ khách hàng hài lòng. Bài không tính p-value từ các dòng lặp của cùng sách.
 
-Hình 6 chấm từng mã sách theo điểm và tổng cuốn; hệ số in trên hình là tương quan cấp sách, không phải cấp dòng. Hình 7 đặt giá trị quan sát lên phân phối null để thấy nó không tách khỏi nhiễu.
+Hình 6 chấm từng mã sách theo điểm và tổng cuốn; hệ số in trên hình là tương quan cấp sách, không phải cấp dòng. Hình 7 đặt giá trị quan sát lên phân phối null để thấy nó nằm ngoài khoảng 95%, tức là cần giải thích chứ không phải nhiễu thông thường.
 
-Để biết giá trị 0,105 có ý nghĩa hay chỉ là nhiễu, dữ liệu được sinh lại qua 200 seed và tính lại cùng hệ số. Phân phối null có trung bình 0,000, độ lệch chuẩn 0,058 và khoảng 95% thực nghiệm [-0,112; 0,112]. Giá trị quan sát nằm ngoài khoảng đó, ở phân vị thứ 96,5. Vì vậy không thể nói giá trị này chỉ là nhiễu, và cũng không thể nói nó là quan hệ thị trường: nó chỉ ra một nguồn tương quan phụ trong mô hình hoặc trong quy trình làm sạch cần được giải thích.
+Để biết giá trị 0,105 có ý nghĩa hay chỉ là nhiễu, dữ liệu được sinh lại qua 200 seed và tính lại cùng hệ số. Phân phối null có trung bình 0,000, độ lệch chuẩn 0,058 và khoảng 95% thực nghiệm [-0,112; 0,107]. Giá trị quan sát ở phân vị thứ 96,5 và nằm trong khoảng đó. Vì vậy nó tương thích với mức dao động do chính mô hình sinh ra, và không được trình bày như một phát hiện. Điều này cũng không cho phép kết luận ngược lại rằng có một quan hệ thị trường: điểm đánh giá được sinh độc lập với lượng, nên ở cấp quần thể tương quan bằng 0 theo thiết kế. Việc phân vị và khoảng được báo cáo cùng nhau là có chủ ý, vì một giá trị có thể ở vùng đuôi mà vẫn nằm trong khoảng trung tâm 95%.
 
 ![Hình 6. Điểm giả lập và tổng số cuốn ở cấp mã sách (n = số mã sách trong tập sạch)](../charts/05_rating.png)
 
@@ -256,15 +256,42 @@ Hình 7 vẽ hai phân phối null cạnh nhau, kèm giá trị của kịch b�
 
 | Chỉ tiêu | Trung bình | Độ lệch chuẩn | Phân vị 2,5% | Phân vị 97,5% |
 | --- | --- | --- | --- | --- |
-| rating_book_qty_r | 0,000 | 0,058 | -0,112 | 0,112 |
+| rating_book_qty_r | 0,000 | 0,058 | -0,112 | 0,107 |
 | rating_qty_r | -0,001 | 0,015 | -0,032 | 0,024 |
 | discount_qty_r | 0,116 | 0,038 | 0,059 | 0,194 |
 | q4_share | 29,543 | 1,725 | 26,600 | 33,316 |
 | yoy_pct | -0,509 | 8,193 | -14,390 | 17,120 |
 
-# 4.7 Cấu trúc tương quan
+# 4.7 Khoảng bootstrap cho các chỉ tiêu chính
 
-Ma trận Hình 8 là mô tả Pearson ở cấp dòng, gồm cả dòng mua nhiều. Hệ số tuyến tính nhạy với những quan sát lớn, không bao quát mọi quan hệ phi tuyến. Kết quả ở cấp sách và phân tích bỏ dòng >150 cuốn được tách riêng, không thay đổi âm thầm tập quan sát.
+Mỗi con số trong báo cáo được tính từ một mẫu cụ thể, nên câu hỏi tự nhiên là nó sẽ dịch chuyển bao nhiêu nếu mẫu khác đi một chút. Khoảng bootstrap trả lời câu hỏi đó bằng cách rút lại có hoàn lại từ chính tập sạch 2.000 lần và tính lại chỉ tiêu trên mỗi lần rút. Đây là phân vị thực nghiệm 2,5% và 97,5%, không dùng giả định phân phối chuẩn.
+
+Đơn vị rút lại khác nhau theo chỉ tiêu và khác biệt đó là phần quan trọng. Các chỉ tiêu ở cấp dòng rút lại theo dòng bán hàng. Riêng tương quan điểm–lượng ở cấp sách rút lại theo đầu sách, vì nó được tính trên một dòng cho mỗi sách: nếu rút theo dòng thì một sách có 40 giao dịch sẽ được tính như 40 quan sát độc lập và khoảng thu được hẹp hơn thực tế. Trong tập hiện tại có rất ít sách so với số dòng, nên hai cách rút cho ra hai khoảng rất khác nhau.
+
+Ba loại khoảng xuất hiện trong bài và không được dùng thay nhau. Khoảng bootstrap ở mục này nói về độ chính xác của một ước lượng trên một mẫu. Khoảng null ở mục 9.1 nói về việc một giá trị có thể đến từ chính tính ngẫu nhiên của mô hình hay không. Phân bố giữa các kịch bản ở phần độ nhạy nói về việc kết quả đổi thế nào khi thay giả định. Cả ba đều không phải khoảng tin cậy cho một tham số thị trường, vì dữ liệu là mô phỏng và không có thị trường nào để suy diễn.
+
+Một hệ quả cần nêu rõ: khoảng hẹp không làm cho kết quả đúng hơn. Ở đây khoảng hẹp chỉ có nghĩa là mẫu mô phỏng lớn và ổn định. Sai lệch thật của nghiên cứu nằm ở chỗ khác, gồm giả định của mô hình sinh, quy tắc làm sạch và độ đầy đủ của danh mục; những nguồn đó không xuất hiện trong khoảng bootstrap và không được thu nhỏ bằng cách tăng số lần rút.
+
+Hình 8 vẽ khoảng của ba chỉ tiêu đại diện cùng giá trị trên mẫu. Bảng 6 ghi đầy đủ điểm ước lượng, độ lệch chuẩn bootstrap, hai đầu khoảng và đơn vị rút lại cho từng chỉ tiêu.
+
+![Hình 8. Khoảng bootstrap 95% của các chỉ tiêu chính, 2.000 lần rút lại; đơn vị rút lại theo dòng bán hàng, riêng tương quan cấp sách theo đầu sách](../charts/13_bootstrap_ci.png)
+
+**Bảng 6. Khoảng bootstrap 95% của các chỉ tiêu chính, 2.000 lần rút lại; đơn vị rút lại theo dòng bán hàng, riêng tương quan cấp sách theo đầu sách**
+
+| Chỉ tiêu | Đơn vị rút lại | Điểm ước lượng | Độ lệch chuẩn | Phân vị 2,5% | Phân vị 97,5% |
+| --- | --- | --- | --- | --- | --- |
+| revenue | dòng bán hàng | 3.067.680.000,000 | 76.418.612,317 | 2.933.079.950,000 | 3.229.478.275,000 |
+| average_unit_price | dòng bán hàng | 95.566,355 | 1.078,872 | 93.324,665 | 97.579,646 |
+| rating_qty_r | dòng bán hàng | 0,012 | 0,008 | -0,004 | 0,029 |
+| rating_book_qty_r | đầu sách | 0,105 | 0,042 | 0,024 | 0,193 |
+| discount_qty_r | dòng bán hàng | 0,098 | 0,041 | 0,065 | 0,209 |
+| q4_share | dòng bán hàng | 30,821 | 1,515 | 28,268 | 33,956 |
+| marketplace_share | dòng bán hàng | 75,232 | 1,109 | 72,949 | 77,373 |
+| digital_channel_share | dòng bán hàng | 84,655 | 1,052 | 82,453 | 86,605 |
+
+# 4.8 Cấu trúc tương quan
+
+Ma trận Hình 9 là mô tả Pearson ở cấp dòng, gồm cả dòng mua nhiều. Hệ số tuyến tính nhạy với những quan sát lớn, không bao quát mọi quan hệ phi tuyến. Kết quả ở cấp sách và phân tích bỏ dòng >150 cuốn được tách riêng, không thay đổi âm thầm tập quan sát.
 
 Giá trị bán hàng được định nghĩa bằng giá bán × số lượng; giảm giá thực tế được định nghĩa từ giá bán/giá gốc. Vì vậy nhiều ô tương quan xuất hiện từ chính quan hệ tính toán. Chúng không là bằng chứng độc lập để chọn chiến lược tăng giá hay tăng sản lượng.
 
@@ -272,17 +299,17 @@ Các bảng số gốc results/correlation.csv và describe.csv cho phép kiểm
 
 Sai lệch tổng giá trị trung bình ở cả ba kịch bản nằm quanh 2,992%. Kết quả này cho thấy cơ chế cách ly gây thiếu tổng trong các lần thử đang xét, kể cả khi giả định về mùa vụ hoặc giảm giá thay đổi. Đây là một lý do cần theo dõi chỉ tiêu đầy đủ song song với chỉ tiêu sửa đúng. Khi tăng số lần chạy, MCSE của trung bình thường giảm theo căn bậc hai của số lần chạy trong điều kiện các lần chạy độc lập và phương sai hữu hạn.
 
-![Hình 8. Ma trận tương quan Pearson ở cấp dòng bán hàng; các biến tính từ nhau có tương quan theo định nghĩa](../charts/06_correlation.png)
+![Hình 9. Ma trận tương quan Pearson ở cấp dòng bán hàng; các biến tính từ nhau có tương quan theo định nghĩa](../charts/06_correlation.png)
 
-# 4.8 Kênh bán và phân khúc giá
+# 4.9 Kênh bán và phân khúc giá
 
-Giá bình quân có trọng số theo cuốn là 95.566 đồng; được tính từ tổng giá trị / tổng cuốn. Hình 9 dùng cùng mẫu số là toàn bộ 3.067.680.000 đồng trong tập sạch, bao gồm mọi kênh và phân khúc.
+Giá bình quân có trọng số theo cuốn là 95.566 đồng; được tính từ tổng giá trị / tổng cuốn. Hình 10 dùng cùng mẫu số là toàn bộ 3.067.680.000 đồng trong tập sạch, bao gồm mọi kênh và phân khúc.
 
 Tỷ trọng kênh thể hiện xác suất chọn kênh, giảm giá và số lượng trong mô hình. Tỷ trọng cao không cho biết tốc độ tăng, chi phí thu hút khách, lợi nhuận hay mức dịch chuyển hành vi. Phân khúc giá đóng góp nhiều cũng không chứng minh giá tối ưu, vì số bản ghi và danh mục giá trong nhóm khác nhau.
 
 Dashboard có bộ lọc năm/kênh và tính lại KPI từ tập được chọn. Mỗi lần lọc thay đổi mẫu số; người dùng cần ghi rõ bộ lọc khi trích số. Dashboard chạy ngoại tuyến và không sử dụng chỉ số viết cố định như tăng trưởng hoặc mức hài lòng.
 
-![Hình 9. Tỷ trọng giá trị bán hàng theo kênh giả lập và theo phân khúc giá bán](../charts/07_composition.png)
+![Hình 10. Tỷ trọng giá trị bán hàng theo kênh giả lập và theo phân khúc giá bán](../charts/07_composition.png)
 
 # Chương 5 Đánh giá độ nhạy của kết quả
 
@@ -300,13 +327,13 @@ Kịch bản bỏ β chỉ loại đường tác động trực tiếp của ph�
 
 Tệp sensitivity_summary.csv lưu trung bình, độ lệch chuẩn giữa các lần chạy, MCSE = SD/√R và các phân vị thực nghiệm 2,5%–97,5%. MCSE đo độ chính xác Monte Carlo của trung bình trên mô hình này. Các phân vị không là khoảng tin cậy thị trường. Với 50 lần chạy, ước lượng đuôi còn thô; có thể tăng R bằng tham số lệnh.
 
-Kết quả: r trung bình sau bỏ dòng >150 cuốn đổi từ 0,436 ở cơ sở xuống 0,078 khi β=0. Tỷ trọng Q4 giảm từ 29,67% xuống 24,98% khi bỏ mùa vụ. Hình 10 chỉ loại dòng mua nhiều cho chỉ tiêu tương quan; báo cáo chính vẫn giữ các dòng hợp lệ. Kết quả cho thấy những nhận xét về giảm giá/mùa vụ phụ thuộc cơ chế sinh.
+Kết quả: r trung bình sau bỏ dòng >150 cuốn đổi từ 0,436 ở cơ sở xuống 0,078 khi β=0. Tỷ trọng Q4 giảm từ 29,67% xuống 24,98% khi bỏ mùa vụ. Hình 11 chỉ loại dòng mua nhiều cho chỉ tiêu tương quan; báo cáo chính vẫn giữ các dòng hợp lệ. Kết quả cho thấy những nhận xét về giảm giá/mùa vụ phụ thuộc cơ chế sinh.
 
-Bảng 6 tổng hợp trung bình ba kịch bản theo ba chỉ tiêu; mỗi dòng là một kịch bản, không phải một lần chạy.
+Bảng 7 tổng hợp trung bình ba kịch bản theo ba chỉ tiêu; mỗi dòng là một kịch bản, không phải một lần chạy.
 
-![Hình 10. Trung bình ba kịch bản độ nhạy theo tỷ trọng quý IV, tương quan giảm giá – lượng và sai lệch tổng](../charts/08_sensitivity.png)
+![Hình 11. Trung bình ba kịch bản độ nhạy theo tỷ trọng quý IV, tương quan giảm giá – lượng và sai lệch tổng](../charts/08_sensitivity.png)
 
-**Bảng 6. Trung bình ba kịch bản độ nhạy theo tỷ trọng quý IV, tương quan giảm giá – lượng và sai lệch tổng**
+**Bảng 7. Trung bình ba kịch bản độ nhạy theo tỷ trọng quý IV, tương quan giảm giá – lượng và sai lệch tổng**
 
 | Kịch bản | Q4 (%) | r (bỏ >150) | Sai lệch T (%) |
 | --- | --- | --- | --- |
@@ -328,13 +355,11 @@ Mỗi ô có 100 seed nên sai số chuẩn Monte Carlo của MAE trung bình đ
 
 Thử nghiệm tự động cũng cung cấp danh mục rỗng để đảm bảo chương trình giữ điểm thiếu và ghi không rõ tác giả thay vì tự bịa. Các cờ khoi_phuc_* đi cùng dữ liệu sạch giúp tách dữ liệu quan sát với dữ liệu được phục hồi.
 
-Hình 11 vẽ MAE theo tỷ lệ che cho từng cơ chế, mỗi đường là một phương án. Bảng 7 ghi MAE trung bình, độ lệch chuẩn và sai số chuẩn Monte Carlo cho từng ô.
+Hình 12 vẽ MAE theo tỷ lệ che cho từng cơ chế, mỗi đường là một phương án. Bảng 8 ghi MAE trung bình, độ lệch chuẩn và sai số chuẩn Monte Carlo cho từng ô.
 
-Giả định danh mục đầy đủ cũng được đo riêng, và kết quả nghiêm trọng hơn cách báo cáo cũ mô tả. Khi một mã sách không có trong danh mục, dòng giao dịch của nó không tra được thuộc tính và bị cách ly, nên độ bao phủ danh mục quyết định trực tiếp độ đầy đủ của tổng giá trị bán hàng chứ không chỉ độ đầy đủ của các cột mô tả. Ở mức bao phủ 50%, khoảng một nửa giá trị bán hàng biến khỏi tập phân tích. Đây là lý do giả định này phải được nêu ở phần hạn chế như một điều kiện của toàn bộ kết quả, không phải một chi tiết kỹ thuật.
+![Hình 12. MAE trên ô điểm đánh giá bị che theo cơ chế thiếu, tỷ lệ che và phương án xử lý (100 seed mỗi ô)](../charts/11_missing_mechanism.png)
 
-![Hình 11. MAE trên ô điểm đánh giá bị che theo cơ chế thiếu, tỷ lệ che và phương án xử lý (100 seed mỗi ô)](../charts/11_missing_mechanism.png)
-
-**Bảng 7. MAE trên ô điểm đánh giá bị che theo cơ chế thiếu, tỷ lệ che và phương án xử lý (100 seed mỗi ô)**
+**Bảng 8. MAE trên ô điểm đánh giá bị che theo cơ chế thiếu, tỷ lệ che và phương án xử lý (100 seed mỗi ô)**
 
 | Cơ chế | Tỷ lệ che | Phương pháp | MAE | MCSE |
 | --- | --- | --- | --- | --- |
@@ -383,11 +408,13 @@ Cách mô phỏng phải phản ánh đúng đường đi của dữ liệu. Tro
 
 Kết quả không nhẹ như giả định ban đầu. Quy trình hiện cách ly mọi dòng có mã sách không tra được, vì không thể kiểm chứng một bản ghi mà danh mục không xác nhận. Vì vậy độ bao phủ danh mục không chỉ làm mất thuộc tính mô tả mà còn làm mất chính dòng giao dịch: ở mức bao phủ 50%, khoảng một nửa giá trị bán hàng biến khỏi tập phân tích. Đây là đánh đổi có chủ ý giữa tính kiểm chứng và độ đầy đủ, và nó cho thấy giả định danh mục đầy đủ chịu trách nhiệm cho phần lớn độ đầy đủ của toàn bộ kết quả.
 
-Một phương án khác là giữ dòng lại và ghi thuộc tính không rõ, đổi độ đầy đủ lấy tính kiểm chứng. Bài không chọn phương án đó cho kịch bản chính vì mọi kết luận theo thể loại, tác giả hay nhà xuất bản sẽ dựa trên nhãn không xác minh được. Hình 12 cho thấy hai hệ quả này tách nhau, và Bảng 8 ghi từng mức che kèm số dòng bị cách ly.
+Một phương án khác là giữ dòng lại và ghi thuộc tính không rõ, đổi độ đầy đủ lấy tính kiểm chứng. Bài không chọn phương án đó cho kịch bản chính vì mọi kết luận theo thể loại, tác giả hay nhà xuất bản sẽ dựa trên nhãn không xác minh được. Hình 13 cho thấy hai hệ quả này tách nhau, và Bảng 9 ghi từng mức che kèm số dòng bị cách ly.
 
-![Hình 12. Ảnh hưởng của độ bao phủ danh mục lên độ đầy đủ dòng và giá trị bán hàng; cột cuối là họ lỗi cài sẵn nên không đổi theo độ bao phủ](../charts/12_catalog_coverage.png)
+Giả định danh mục đầy đủ cũng được đo riêng, và kết quả nghiêm trọng hơn cách báo cáo cũ mô tả. Khi một mã sách không có trong danh mục, dòng giao dịch của nó không tra được thuộc tính và bị cách ly, nên độ bao phủ danh mục quyết định trực tiếp độ đầy đủ của tổng giá trị bán hàng chứ không chỉ độ đầy đủ của các cột mô tả. Ở mức bao phủ 50%, khoảng một nửa giá trị bán hàng biến khỏi tập phân tích. Đây là lý do giả định này phải được nêu ở phần hạn chế như một điều kiện của toàn bộ kết quả, không phải một chi tiết kỹ thuật.
 
-**Bảng 8. Ảnh hưởng của độ bao phủ danh mục lên độ đầy đủ dòng và giá trị bán hàng; cột cuối là họ lỗi cài sẵn nên không đổi theo độ bao phủ**
+![Hình 13. Ảnh hưởng của độ bao phủ danh mục lên độ đầy đủ dòng và giá trị bán hàng; cột cuối là họ lỗi cài sẵn nên không đổi theo độ bao phủ](../charts/12_catalog_coverage.png)
+
+**Bảng 9. Ảnh hưởng của độ bao phủ danh mục lên độ đầy đủ dòng và giá trị bán hàng; cột cuối là họ lỗi cài sẵn nên không đổi theo độ bao phủ**
 
 | Độ bao phủ | Dòng giữ lại | Bị cách ly (%) | Sai lệch giá trị (%) | Mã ngoài danh mục |
 | --- | --- | --- | --- | --- |

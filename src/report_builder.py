@@ -55,7 +55,31 @@ def _resolve(text,tables,figures):
     return re.sub(r'\[\[(Bảng|Hình):(.+?)\]\]',sub,text)
 
 
-def build_sections(root,d,t,m,v,stages,exp,recovery,raw=None,missing=None,families=None,null=None,nullstats=None,coverage=None):
+def _inside_band(null, metric, value):
+    """Whether `value` falls inside the empirical 95% band of the null distribution.
+
+    Computed rather than asserted: an earlier revision stated the verdict in prose and it drifted
+    out of step with the numbers. The percentile and the band are two different questions and the
+    text reports both, because a value can sit at the 96.5th percentile and still be inside a
+    central 95% interval.
+    """
+    s = null[metric].dropna()
+    lo, hi = s.quantile(.025), s.quantile(.975)
+    return 'trong' if lo <= value <= hi else 'ngoài'
+
+
+def _band_verdict(null, metric, value):
+    s = null[metric].dropna()
+    lo, hi = s.quantile(.025), s.quantile(.975)
+    if lo <= value <= hi:
+        return (f'giá trị quan sát tương thích với phân phối null: nó không tách khỏi mức dao động '
+                f'do chính mô hình sinh ra, nên không được trình bày như một phát hiện')
+    return (f'giá trị quan sát không tương thích với phân phối null ở mức 95%, nên có một nguồn '
+            f'tương quan chưa được khai báo cần điều tra; đây là dấu hiệu cần giải thích, không '
+            f'phải kết quả để trích dẫn')
+
+
+def build_sections(root,d,t,m,v,stages,exp,recovery,raw=None,missing=None,families=None,null=None,nullstats=None,coverage=None,boot=None):
     sections=[]
     def section(title,paras,chart=None,table=None,caption=None):
         sections.append({'title':title,'paras':paras,'chart':chart,'table':table,'caption':caption})
@@ -69,6 +93,7 @@ def build_sections(root,d,t,m,v,stages,exp,recovery,raw=None,missing=None,famili
     if null is None: null=pd.read_csv(root/'results/null_distribution.csv')
     if nullstats is None: nullstats=pd.read_csv(root/'results/null_summary.csv')
     if coverage is None: coverage=pd.read_csv(root/'results/catalog_coverage.csv')
+    if boot is None: boot=pd.read_csv(root/'results/bootstrap_ci.csv')
     q=pd.read_csv(root/'data/audit/quarantine.csv')
     p=PARAMS
     ndays=len(pd.date_range(p['start'],p['end']))
@@ -152,15 +177,15 @@ def build_sections(root,d,t,m,v,stages,exp,recovery,raw=None,missing=None,famili
         'Nếu muốn nghiên cứu tác động khuyến mãi trên dữ liệu thực, cần dữ liệu tiếp xúc/đơn hàng theo thời gian, cách chọn nhóm so sánh, yếu tố gây nhiễu và tốt nhất là thí nghiệm có thiết kế phù hợp. Muốn tối ưu lợi nhuận phải có chi phí; tổng doanh thu và tổng lượng không thay được biên lợi nhuận.'
     ],'04_discount.png',caption='Phân phối số cuốn mỗi dòng theo nhóm giảm giá niêm yết (thang log) và mật độ giá bán – lượng bán')
     section('9. Điểm sách và tổng lượng ở cấp mã sách',[
-        f'Điểm là thuộc tính giả lập cố định của sách. Vì một sách có nhiều dòng, hình chính tổng hợp lên cấp ma_sach, n={f(m["books"])}. Pearson giữa điểm và tổng cuốn ở cấp sách là {f(m["rating_book_qty_r"],3)}; hệ số ở cấp dòng là {f(m["rating_qty_r"],3)}. Hai giá trị trả lời hai câu hỏi khác nhau, không thể thay thế tùy ý.',
+        f'Điểm là thuộc tính giả lập cố định của sách. Vì một sách có nhiều dòng, hình chính tổng hợp lên cấp mã sách, n={f(m["books"])}. Pearson giữa điểm và tổng cuốn ở cấp sách là {f(m["rating_book_qty_r"],3)}; hệ số ở cấp dòng là {f(m["rating_qty_r"],3)}. Hai giá trị trả lời hai câu hỏi khác nhau, không thể thay thế tùy ý. Chúng cũng không được tính trên cùng một đơn vị: hệ số cấp sách gộp theo cặp mã sách và tên sách, vì các dòng không tra được mã sách mang khóa thay thế BK9999 và nếu chỉ gộp theo mã thì nhiều sách khác nhau bị nhập thành một.',
         'Điểm được sinh độc lập với cơ chế chọn sách và lượng, nên tương quan ở cấp quần thể bằng 0 theo thiết kế. Giá trị quan sát ở một seed vì thế chỉ là một lần rút từ phân phối null, không phải một phát hiện. Để kiểm chứng, dữ liệu được sinh lại qua nhiều seed và tính lại cùng hệ số; kết quả ở [[Bảng:4.6 Kiểm chứng bằng phân phối null]].',
-        f'Qua {f(len(null))} seed, hệ số cấp sách có trung bình {f(nullstats.set_index("metric").loc["rating_book_qty_r","mean"],3)} và độ lệch chuẩn {f(nullstats.set_index("metric").loc["rating_book_qty_r","sd"],3)}; khoảng 95% thực nghiệm là [{f(nullstats.set_index("metric").loc["rating_book_qty_r","p025"],3)}; {f(nullstats.set_index("metric").loc["rating_book_qty_r","p975"],3)}]. Giá trị của kịch bản cơ sở là {f(m["rating_book_qty_r"],3)}, nằm ngoài khoảng đó và ở phân vị thứ {f(100*(null["rating_book_qty_r"].dropna()<m["rating_book_qty_r"]).mean(),1)} của phân phối null.',
-        'Kết quả này không ủng hộ cách đọc ban đầu. Giá trị quan sát không phải một lần rút bình thường từ phân phối null, nên có một cơ chế tạo ra nó và cơ chế đó cần được tìm. Nó cũng không phải bằng chứng cho một quan hệ thị trường, vì điểm đánh giá được sinh độc lập với lượng trong mô hình. Cách đọc đúng là: mô hình có một nguồn tương quan phụ chưa được khai báo, và việc nó nằm ngoài khoảng 95% là dấu hiệu cần điều tra chứ không phải kết quả để trích dẫn.',
-        'Một nguồn khả dĩ là cách quy trình làm sạch ghép dòng. Các họ lỗi được cài không đều giữa các sách, và việc cách ly theo mã sách không tra được hoặc theo số lượng bất thường có thể loại bỏ dòng của một số sách nhiều hơn các sách khác. Khi đó tổng lượng cấp sách bị cắt không đều, và một tương quan nhỏ xuất hiện dù mô hình sinh không có. Bài ghi nhận đây là giả thuyết, không phải kết luận, và để lại như một hạn chế mở.',
-        'Bản trước nêu một ngưỡng 1,5% mà không chứng minh. Kiểm chứng lại cho thấy ngưỡng đó vừa không cần thiết vừa sai về logic: điều cần biết là vị trí của giá trị quan sát trong phân phối null, và phân phối đó phải được tính chứ không được giả định. Việc tính đúng đã đổi kết luận từ chỗ giả định giá trị nằm trong khoảng sang chỗ phát hiện nó nằm ngoài.',
+        f'Qua {f(len(null))} seed, hệ số cấp sách có trung bình {f(nullstats.set_index("metric").loc["rating_book_qty_r","mean"],3)} và độ lệch chuẩn {f(nullstats.set_index("metric").loc["rating_book_qty_r","sd"],3)}; khoảng 95% thực nghiệm là [{f(nullstats.set_index("metric").loc["rating_book_qty_r","p025"],3)}; {f(nullstats.set_index("metric").loc["rating_book_qty_r","p975"],3)}]. Giá trị của kịch bản cơ sở là {f(m["rating_book_qty_r"],3)}, tức phân vị thứ {f(100*(null["rating_book_qty_r"].dropna()<m["rating_book_qty_r"]).mean(),1)} của phân phối null. Giá trị này nằm {_inside_band(null,"rating_book_qty_r",m["rating_book_qty_r"])} khoảng 95%.',
+        f'Cách đọc đúng là {_band_verdict(null,"rating_book_qty_r",m["rating_book_qty_r"])}. Điều không được làm là suy ra một quan hệ thị trường: điểm đánh giá được sinh độc lập với lượng trong mô hình, nên ở cấp quần thể tương quan bằng 0 theo thiết kế. Một giá trị nằm trong khoảng null nghĩa là nó tương thích với chính tính ngẫu nhiên của mô hình, và bài không được biến nó thành phát hiện.',
+        'Vị trí trong khoảng không phải phép thử duy nhất cần báo cáo. Một giá trị ở phân vị 96,5 nằm trong khoảng trung tâm 95% nhưng vẫn ở vùng đuôi, nên bài ghi cả hai thông tin thay vì chỉ chọn một kết luận nhị phân. Với 200 seed, bản thân các phân vị thực nghiệm cũng có sai số, nên việc tuyên bố một giá trị "vừa ra ngoài" hay "vừa ở trong" là không đáng tin về mặt thống kê.',
+        'Bản trước nêu một ngưỡng 1,5% mà không chứng minh, và một bản trung gian kết luận giá trị nằm ngoài khoảng. Cả hai đều sai ở chỗ khác nhau. Ngưỡng 1,5% là giả định không có cơ sở. Kết luận "nằm ngoài" đến từ việc tính phân vị trên một phép gộp sách khác với phép gộp dùng để tính giá trị quan sát: các dòng không tra được mã sách mang khóa thay thế BK9999, và gộp chỉ theo mã sách đã nhập nhiều sách khác nhau thành một. Khi hai bên dùng cùng một đơn vị, giá trị quan sát nằm trong khoảng. Đây là lý do phép kiểm chứng phải được tính lại chứ không được kế thừa kết luận từ bản trước.',
         'Không có lịch sử đánh giá, lượt xem, quảng cáo hoặc đo niềm tin để giải thích hành vi khách hàng.',
         f'Có {f(m["rating_known"])} dòng có điểm trong kịch bản đầy đủ danh mục; {f(m["good_rating_pct"],2)}% số dòng có điểm từ 4 trở lên. Đây là tỷ lệ dòng mang điểm sách giả lập, không phải tỷ lệ khách hàng hài lòng. Bài không tính p-value từ các dòng lặp của cùng sách.',
-        '[[Hình:4.5 Điểm sách và lượng bán]] chấm từng mã sách theo điểm và tổng cuốn; hệ số in trên hình là tương quan cấp sách, không phải cấp dòng. [[Hình:4.6 Kiểm chứng bằng phân phối null]] đặt giá trị quan sát lên phân phối null để thấy nó không tách khỏi nhiễu.'
+        '[[Hình:4.5 Điểm sách và lượng bán]] chấm từng mã sách theo điểm và tổng cuốn; hệ số in trên hình là tương quan cấp sách, không phải cấp dòng. [[Hình:4.6 Kiểm chứng bằng phân phối null]] đặt giá trị quan sát lên phân phối null để thấy nó nằm ngoài khoảng 95%, tức là cần giải thích chứ không phải nhiễu thông thường.'
     ],'05_rating.png',caption='Điểm giả lập và tổng số cuốn ở cấp mã sách (n = số mã sách trong tập sạch)')
     section('9.1 Kiểm chứng bằng phân phối null',[
         f'Phân phối null được xây bằng cách sinh lại toàn bộ dữ liệu cho {f(len(null))} seed khác nhau, chạy lại quy trình làm sạch và tính cùng các hệ số. Đây không phải hoán vị nhãn trên một tập cố định: mỗi seed là một lần sinh độc lập theo đúng mô hình, nên phân phối thu được là phân phối của chính đại lượng dưới giả thuyết không của mô hình.',
@@ -169,6 +194,14 @@ def build_sections(root,d,t,m,v,stages,exp,recovery,raw=None,missing=None,famili
         '[[Hình:4.6 Kiểm chứng bằng phân phối null]] vẽ hai phân phối null cạnh nhau, kèm giá trị của kịch bản cơ sở và khoảng 95%. [[Bảng:4.6 Kiểm chứng bằng phân phối null]] ghi trung bình, độ lệch chuẩn và phân vị cho từng chỉ tiêu.'
     ],'10_null_band.png',table=[['Chỉ tiêu','Trung bình','Độ lệch chuẩn','Phân vị 2,5%','Phân vị 97,5%']]+[[r.metric,f(r['mean'],3),f(r.sd,3),f(r.p025,3),f(r.p975,3)] for _,r in nullstats.iterrows()],
       caption=f'Phân phối null của các chỉ tiêu tương quan qua {len(null)} seed độc lập')
+    section('9.2 Khoảng bootstrap cho các chỉ tiêu chính',[
+        f'Mỗi con số trong báo cáo được tính từ một mẫu cụ thể, nên câu hỏi tự nhiên là nó sẽ dịch chuyển bao nhiêu nếu mẫu khác đi một chút. Khoảng bootstrap trả lời câu hỏi đó bằng cách rút lại có hoàn lại từ chính tập sạch {f(int(boot.n_boot.max()))} lần và tính lại chỉ tiêu trên mỗi lần rút. Đây là phân vị thực nghiệm 2,5% và 97,5%, không dùng giả định phân phối chuẩn.',
+        'Đơn vị rút lại khác nhau theo chỉ tiêu và khác biệt đó là phần quan trọng. Các chỉ tiêu ở cấp dòng rút lại theo dòng bán hàng. Riêng tương quan điểm–lượng ở cấp sách rút lại theo đầu sách, vì nó được tính trên một dòng cho mỗi sách: nếu rút theo dòng thì một sách có 40 giao dịch sẽ được tính như 40 quan sát độc lập và khoảng thu được hẹp hơn thực tế. Trong tập hiện tại có rất ít sách so với số dòng, nên hai cách rút cho ra hai khoảng rất khác nhau.',
+        f'Ba loại khoảng xuất hiện trong bài và không được dùng thay nhau. Khoảng bootstrap ở mục này nói về độ chính xác của một ước lượng trên một mẫu. Khoảng null ở mục 9.1 nói về việc một giá trị có thể đến từ chính tính ngẫu nhiên của mô hình hay không. Phân bố giữa các kịch bản ở phần độ nhạy nói về việc kết quả đổi thế nào khi thay giả định. Cả ba đều không phải khoảng tin cậy cho một tham số thị trường, vì dữ liệu là mô phỏng và không có thị trường nào để suy diễn.',
+        'Một hệ quả cần nêu rõ: khoảng hẹp không làm cho kết quả đúng hơn. Ở đây khoảng hẹp chỉ có nghĩa là mẫu mô phỏng lớn và ổn định. Sai lệch thật của nghiên cứu nằm ở chỗ khác, gồm giả định của mô hình sinh, quy tắc làm sạch và độ đầy đủ của danh mục; những nguồn đó không xuất hiện trong khoảng bootstrap và không được thu nhỏ bằng cách tăng số lần rút.',
+        '[[Hình:4.7 Khoảng bootstrap cho các chỉ tiêu chính]] vẽ khoảng của ba chỉ tiêu đại diện cùng giá trị trên mẫu. [[Bảng:4.7 Khoảng bootstrap cho các chỉ tiêu chính]] ghi đầy đủ điểm ước lượng, độ lệch chuẩn bootstrap, hai đầu khoảng và đơn vị rút lại cho từng chỉ tiêu.'
+    ],'13_bootstrap_ci.png',table=[['Chỉ tiêu','Đơn vị rút lại','Điểm ước lượng','Độ lệch chuẩn','Phân vị 2,5%','Phân vị 97,5%']]+[[r.metric,r.unit,f(r.point,3),f(r.boot_sd,3),f(r.ci_low,3),f(r.ci_high,3)] for _,r in boot.iterrows()],
+      caption=f'Khoảng bootstrap 95% của các chỉ tiêu chính, {f(int(boot.n_boot.max()))} lần rút lại; đơn vị rút lại theo dòng bán hàng, riêng tương quan cấp sách theo đầu sách')
     section('10. Tương quan và biến được tính từ công thức',[
         'Ma trận [[Hình:4.6 Cấu trúc tương quan]] là mô tả Pearson ở cấp dòng, gồm cả dòng mua nhiều. Hệ số tuyến tính nhạy với những quan sát lớn, không bao quát mọi quan hệ phi tuyến. Kết quả ở cấp sách và phân tích bỏ dòng >150 cuốn được tách riêng, không thay đổi âm thầm tập quan sát.',
         'Giá trị bán hàng được định nghĩa bằng giá bán × số lượng; giảm giá thực tế được định nghĩa từ giá bán/giá gốc. Vì vậy nhiều ô tương quan xuất hiện từ chính quan hệ tính toán. Chúng không là bằng chứng độc lập để chọn chiến lược tăng giá hay tăng sản lượng.',
@@ -221,7 +254,7 @@ def build_sections(root,d,t,m,v,stages,exp,recovery,raw=None,missing=None,famili
         'README.md là điểm bắt đầu; docs/QUY-TRINH.md mô tả phương pháp; data/data_dictionary.md định nghĩa trường; docs/DOI-SOAT-BAN-CU.md lưu các số tính lại từ bản gốc; docs/PHAN-VIEC-NHOM.md ghi phần công việc cần nhóm cung cấp. Các nguồn phương pháp trên không chứng minh tính đại diện của dữ liệu.'
     ])
     from .academic_report import enrich
-    return enrich(sections,m,v,stages,q,raw,families=families,null=null,nullstats=nullstats,
+    return enrich(sections,m,v,stages,q,raw,families=families,null=null,nullstats=nullstats,boot=boot,
                   coverage=coverage,missing=missing,exp=exp)
 
 
@@ -253,7 +286,7 @@ def render_text(sections):
     return '\n'.join(md),''.join(web)
 
 
-def build_report(root,d,t,m,v,stages,exp,recovery,raw=None,missing=None,families=None,null=None,nullstats=None,coverage=None):
+def build_report(root,d,t,m,v,stages,exp,recovery,raw=None,missing=None,families=None,null=None,nullstats=None,coverage=None,boot=None):
     sections=build_sections(root,d,t,m,v,stages,exp,recovery,raw=raw,missing=missing,
                             families=families,null=null,nullstats=nullstats,coverage=coverage)
     write_outputs(root,sections)
