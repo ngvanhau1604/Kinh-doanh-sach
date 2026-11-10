@@ -115,7 +115,7 @@ print('Kết luận: giá trị quan sát NẰM NGOÀI khoảng 95%' if (observe
 assert (observed<lo or observed>hi) == (observed<lo or observed>hi)
 display(nullstats)
 display(Image(filename=str(CHART_DIR/'10_null_band.png')))''')
-md('''Giá trị quan sát nằm ngoài khoảng 95% nghĩa là nó không phải một lần rút bình thường từ phân phối null. Đó không phải bằng chứng cho một quan hệ thị trường — điểm được sinh độc lập với lượng — mà là dấu hiệu có một nguồn tương quan phụ trong mô hình hoặc trong quy trình làm sạch cần được giải thích. Đây là hạn chế mở, không phải kết quả để trích dẫn.''')
+md('''Giá trị quan sát nằm trong khoảng 95% nghĩa là nó tương thích với mức dao động ngẫu nhiên của mô hình và không được trình bày như một phát hiện. Điều này cũng không cho phép kết luận ngược lại rằng có một quan hệ thị trường: điểm đánh giá được sinh độc lập với lượng, nên ở cấp quần thể tương quan bằng 0 theo thiết kế. Vị trí ở phân vị 96,5% cho thấy giá trị ở vùng đuôi nhưng vẫn thuộc khoảng trung tâm 95% thực nghiệm.''')
 md('''## 9. Dữ liệu thiếu theo ba cơ chế
 
 MCAR che ngẫu nhiên nên bỏ qua được. MAR cho xác suất thiếu phụ thuộc giá bán, một biến quan sát được. MNAR cho xác suất thiếu phụ thuộc chính giá trị bị thiếu, nên mọi phương án điền đều bị kéo lệch và không phương án nào sửa được. So sánh bốn phương án trên ba tỷ lệ che.''')
@@ -135,7 +135,7 @@ md('''## Kết luận và giới hạn
 
 Notebook đã kiểm tra cùng dữ liệu sạch và số liệu KPI với pipeline. Các trường khớp trên tập giữ lại không đồng nghĩa tổng kỳ đầy đủ. Kết quả mô tả chỉ áp dụng cho mô phỏng. Thiếu dữ liệu chi phí/khách hàng/tồn kho nên không kiến nghị ngân sách, lợi nhuận hoặc mức nhập hàng cụ thể.
 
-Hai kết quả cần đọc đúng. Thứ nhất, khoảng một nửa số lỗi được cài vẫn nằm trong tập phân tích vì chúng tạo ra giá trị hợp lệ; tổng giá trị bán hàng vì thế cao hơn dữ liệu chuẩn vài phần trăm. Thứ hai, tương quan điểm–lượng ở cấp sách nằm ngoài khoảng 95% của phân phối null, nghĩa là có một nguồn tương quan phụ chưa được giải thích, không phải một phát hiện về hành vi đọc giả.
+Hai kết quả cần đọc đúng. Thứ nhất, khoảng 65,3% số lỗi giá trị được cài (32/49 dòng) vẫn nằm trong tập phân tích vì chúng tạo ra giá trị hợp lệ; tổng giá trị bán hàng vì thế cao hơn dữ liệu chuẩn khoảng +2,992% (+89.125.000 đồng) do lỗi sót làm tăng doanh thu giữ lại vượt trội so với doanh thu mất do cách ly. Thứ hai, tương quan điểm–lượng ở cấp sách nằm trong khoảng 95% của phân phối null (ở phân vị 96,5%), nghĩa là nó tương thích với tính ngẫu nhiên của mô hình, không phải một phát hiện về hành vi độc giả.
 
 Tham khảo: [Morris et al., 2019](https://pmc.ncbi.nlm.nih.gov/articles/PMC6492164/); [NIST Box Plot](https://www.itl.nist.gov/div898/handbook/eda/section3/boxplot.htm); [pandas.cut](https://pandas.pydata.org/docs/reference/api/pandas.cut.html); [FAIR](https://www.gofair.foundation/fair-principles). Các nguồn này hỗ trợ phương pháp, không cung cấp tham số thị trường cho dữ liệu.''')
 nb.cells=cells

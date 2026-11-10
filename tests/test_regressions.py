@@ -442,3 +442,158 @@ def test_null_band_and_observed_value_use_the_same_book_grouping(bundle):
     one = null_band(n_seeds=1)
     assert 'rating_book_qty_r' in one.columns
     assert null['rating_book_qty_r'].notna().all()
+
+
+# --- APA citation integrity ----------------------------------------------------------------
+
+def test_every_reference_is_cited_and_every_citation_has_a_reference():
+    """APA is author-date, so a numeric marker anywhere in the text means the conversion was
+    incomplete, and a reference nobody cites is a reference that should not be in the list."""
+    import re
+    from src.report_builder import SOURCES
+
+    text = (ROOT / 'report/bao_cao.md').read_text(encoding='utf8')
+    body, _, refs = text.partition('# Tài liệu tham khảo và chỉ dẫn tái lập')
+
+    assert not re.search(r'\[\d\]', body), 'numeric citation marker left in the body'
+
+    # Each reference must appear verbatim in the reference section.
+    for title, _url in SOURCES:
+        assert title in refs, title[:60]
+
+    # Each in-text citation must correspond to a reference entry.
+    keys = {
+        'Morris và cộng sự, 2019': 'Morris, T. P.',
+        'GO FAIR Foundation, n.d.': 'GO FAIR Foundation',
+        'NIST/SEMATECH, 2012': 'NIST/SEMATECH',
+        'The pandas development team, 2024': 'The pandas development team',
+    }
+    for in_text, ref_start in keys.items():
+        if in_text in body:
+            assert ref_start in refs, in_text
+
+
+def test_cover_placeholders_are_marked_not_invented():
+    """The template cannot know the institution or the members. Every such field must be an
+    explicit placeholder rather than a plausible-looking guess."""
+    text = (ROOT / 'report/bao_cao.md').read_text(encoding='utf8')
+    for field in ['TRƯỜNG:', 'KHOA/BỘ MÔN:', 'HỌC PHẦN:', 'GIẢNG VIÊN HƯỚNG DẪN:', 'NHÓM THỰC HIỆN:']:
+        assert field in text, field
+    assert text.count('[CẦN ĐIỀN') >= 6
+
+
+def test_metrics_json_survives_a_console_that_cannot_encode_vietnamese():
+    """CI on windows-latest runs with a cp1252 stdout. Printing the metrics payload there raised
+    UnicodeEncodeError and failed the pipeline while passing locally under PYTHONIOENCODING=utf-8.
+    The file is written as UTF-8 either way; the console copy must degrade, not crash."""
+    import io
+    import json
+
+    payload = {'metric': 'doanh_thu', 'unit': 'đồng', 'note': 'Điểm đánh giá'}
+
+    # A stream that refuses anything outside cp1252, like the real Windows console.
+    strict = io.TextIOWrapper(io.BytesIO(), encoding='cp1252', errors='strict', newline='')
+    with pytest.raises(UnicodeEncodeError):
+        strict.write(json.dumps(payload, ensure_ascii=False))
+
+    # The fallback used by run.py must round-trip the same data.
+    escaped = json.dumps(payload, ensure_ascii=True)
+    strict.write(escaped)
+    strict.flush()
+    decoded = json.loads(strict.buffer.getvalue().decode('cp1252'))
+    assert decoded == payload
+
+
+# --- Final submission regressions (Errors A - H) --------------------------------------------
+
+def test_regression_error_a_book_counts_and_placeholder_key(bundle):
+    """Lỗi A: Catalog có 300 sách, nhưng tập sạch có 301 mã sách do BK9999, và 306 cặp (mã, tên).
+    Báo cáo phải phân biệt rõ ràng ba số lượng này."""
+    md = (ROOT / 'report/bao_cao.md').read_text(encoding='utf8')
+    assert '300 mã danh mục' in md or '300 sách' in md or '300 đầu sách' in md
+    assert 'BK9999' in md
+    assert '301 mã sách' in md or '301 mã' in md
+    # Make sure we don't confuse the catalog design with the observed keys
+    assert '301 mã sách trong danh mục' not in md
+
+
+def test_regression_error_b_detection_rates_consistency():
+    """Lỗi B: Không dùng mẫu số 1029 để tuyên bố 97,9% lỗi còn lại trên 8 họ lỗi.
+    Tỷ lệ phát hiện và dòng còn sai phải đồng nhất."""
+    md = (ROOT / 'report/bao_cao.md').read_text(encoding='utf8')
+    assert '97,9% lỗi vẫn nằm lại' not in md
+    assert '97,9% lỗi còn lại' not in md
+    # We must explicitly distinguish the family-level detection
+    assert 'tám họ lỗi giá trị' in md or 'tám họ' in md
+    assert '32' in md  # 32 dòng lỗi giá trị còn sai
+
+
+def test_regression_error_c_no_false_100_percent_claim_on_all_fields():
+    """Lỗi C: Không khẳng định cả 8 trường đều khớp 100% khi chỉ có 3 trường đạt 100%."""
+    md = (ROOT / 'report/bao_cao.md').read_text(encoding='utf8')
+    assert 'tám trường được đối chiếu với dữ liệu chuẩn đều đạt tỷ lệ khớp 100%' not in md
+    assert 'ba trường thuộc tính danh mục đạt tỷ lệ khớp 100%' in md
+
+
+def test_regression_error_d_error_family_table_has_flagged_column():
+    """Lỗi D: Bảng họ lỗi phải có cột 'Gắn cờ' để giải thích tại sao catalog_missing
+    có cách ly = 0 nhưng tỷ lệ phát hiện là 100%."""
+    md = (ROOT / 'report/bao_cao.md').read_text(encoding='utf8')
+    assert '| Gắn cờ |' in md
+    assert 'catalog_missing' in md
+
+
+def test_regression_error_e_revenue_error_interpretation(bundle):
+    """Lỗi E: Doanh thu tập sạch cao hơn dữ liệu chuẩn (+2,992%).
+    Phải tách biệt hai tác động: lỗi còn sót làm tăng và cách ly làm giảm."""
+    md = (ROOT / 'report/bao_cao.md').read_text(encoding='utf8')
+    assert 'tổng kỳ vẫn thiếu do cách ly' not in md
+    assert 'cơ chế cách ly gây thiếu tổng' not in md
+    assert '+2,992%' in md or '2,992%' in md
+    # Arithmetic identity verification
+    truth = bundle['truth']
+    clean_df = bundle['d']
+    t_feat = truth.copy()
+    t_feat['doanh_thu'] = t_feat['gia_ban'] * t_feat['so_luong']
+    removed_ids = set(truth['ma_dong']) - set(clean_df['ma_dong'])
+    quarantine_loss = t_feat[t_feat['ma_dong'].isin(removed_ids)]['doanh_thu'].sum()
+    retained_clean = clean_df.set_index('ma_dong')['doanh_thu']
+    retained_truth = t_feat.set_index('ma_dong').loc[clean_df['ma_dong']]['doanh_thu']
+    retained_err = (retained_clean - retained_truth).sum()
+    net_gap = clean_df['doanh_thu'].sum() - t_feat['doanh_thu'].sum()
+    assert retained_err - quarantine_loss == net_gap
+    assert net_gap > 0  # Clean revenue is higher than truth
+
+
+def test_regression_error_f_null_distribution_verdict_consistent():
+    """Lỗi F: Giá trị quan sát r=0.105 nằm TRONG khoảng null 95% [-0.112; 0.107].
+    Không văn bản nào được khẳng định nó nằm ngoài khoảng 95%."""
+    md = (ROOT / 'report/bao_cao.md').read_text(encoding='utf8')
+    assert 'thấy nó nằm ngoài khoảng 95%' not in md
+    assert 'nằm trong khoảng 95%' in md
+
+    # Also check notebook source
+    import nbformat
+    nb = nbformat.read(ROOT / 'notebooks/book_sales_analysis.ipynb', as_version=4)
+    nb_text = ''.join(c.source for c in nb.cells)
+    assert 'nằm ngoài khoảng 95%' not in nb_text
+    assert 'nằm trong khoảng 95%' in nb_text
+
+
+def test_regression_error_g_no_thousands_separator_in_years():
+    """Lỗi G: Năm xuất bản không được định dạng thành 2.015–2.023."""
+    md = (ROOT / 'report/bao_cao.md').read_text(encoding='utf8')
+    assert '2.015' not in md
+    assert '2.023' not in md
+    assert '2015–2023' in md
+
+
+def test_regression_error_h_readme_and_docs_sync_with_metrics():
+    """Lỗi H: README.md và docs/KET-QUA-KIEM-TRA.md phải đồng bộ với số liệu mới nhất."""
+    readme = (ROOT / 'README.md').read_text(encoding='utf8')
+    metrics = json.loads((ROOT / 'results/metrics.json').read_text(encoding='utf8'))['metrics']
+    assert '6.480' not in readme
+    assert f"{metrics['lines']:,}".replace(',', '.') in readme
+    assert '22 mã nghiệp vụ' in readme
+    assert '+2,992%' in readme
+

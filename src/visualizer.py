@@ -79,7 +79,7 @@ def generate_all_charts(d,tables,experiments,out,null=None,families=None,missing
         ax.set_title('Tỷ lệ phát hiện theo họ lỗi được cài')
         handles=[plt.Rectangle((0,0),1,1,color=TEAL),plt.Rectangle((0,0),1,1,color=ORANGE),plt.Rectangle((0,0),1,1,color='#B23A48')]
         ax.legend(handles,['Miền giá trị phát hiện được','Phát hiện một phần','Không thể phát hiện'],loc='lower right',fontsize=10,frameon=False)
-        save(fig,'09_error_family.png','Đơn vị: dòng mang lỗi được cài. Tỷ lệ phát hiện = số dòng bị cách ly / số dòng mang lỗi.')
+        save(fig,'09_error_family.png','Đơn vị: dòng mang lỗi được cài. Tỷ lệ phát hiện = số dòng được phát hiện (cách ly hoặc gắn cờ) / số dòng mang lỗi.')
 
     if null is not None and metrics is not None:
         fig,ax=plt.subplots(1,2,figsize=(12,5))
