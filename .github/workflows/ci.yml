@@ -37,8 +37,23 @@ jobs:
       - name: Pipeline smoke run (separate output directory)
         run: python run.py --out .ci-out --skip-presentation --replications 3
 
-      - name: Execute notebook against the committed results
-        run: python tools/execute_notebook.py
+      # --check executes the notebook and fails if the committed file differs from a fresh run.
+      # It proves the committed outputs are current, and that re-execution is idempotent: the
+      # notebook no longer dirties the working tree, because nbclient's per-cell timestamps are
+      # stripped before writing.
+      - name: Execute notebook and verify committed outputs are current
+        run: python tools/execute_notebook.py --check
+
+      - name: Working tree is clean after a full run
+        shell: bash
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Working tree is dirty after running the pipeline and notebook:"
+            git status --porcelain
+            git --no-pager diff --stat
+            exit 1
+          fi
+          echo "Working tree clean."
 
       - name: Check text outputs are LF-only
         shell: bash

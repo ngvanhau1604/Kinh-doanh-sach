@@ -314,3 +314,41 @@ def test_generator_output_is_unchanged_by_the_config_refactor():
         assert digest(df) == hashlib.sha256(
             (ROOT / rel).read_bytes().replace(b'\r\n', b'\n')).hexdigest(), \
             f'{name} thay đổi sau khi refactor cấu hình'
+
+
+# --- F-13b: re-executing the notebook must not dirty the working tree ------------------------
+
+def test_notebook_execution_is_idempotent():
+    """Regression: nbclient stamps every cell with wall-clock timestamps, so running the
+    notebook rewrote the committed file on every run and left git status dirty. The outputs
+    are kept (they are part of the submission); only the volatile metadata is stripped."""
+    import nbformat
+    from tools.execute_notebook import normalise
+
+    path = ROOT / 'notebooks/book_sales_analysis.ipynb'
+    nb = nbformat.read(path, as_version=4)
+    before = nbformat.writes(nb, version=4)
+    # Simulate what nbclient does on execution.
+    for cell in nb.cells:
+        if cell.cell_type == 'code':
+            cell.metadata['execution'] = {'iopub.execute_input': '2026-01-01T00:00:00.000000Z'}
+    nb.metadata['language_info']['version'] = '3.99.0'
+    after = nbformat.writes(normalise(nb), version=4)
+    assert after == before, 'notebook is not stable across executions'
+    assert chr(13) not in before, 'committed notebook must use LF so --check works on Linux CI'
+
+
+def test_committed_notebook_keeps_its_outputs():
+    """The outputs are submitted evidence, not build artefacts: stripping them to keep the tree
+    clean would have been the wrong fix."""
+    import nbformat
+
+    nb = nbformat.read(ROOT / 'notebooks/book_sales_analysis.ipynb', as_version=4)
+    code = [c for c in nb.cells if c.cell_type == 'code']
+    assert code, 'notebook has no code cells'
+    # A cell that only rebuilds charts has no display output by design; every cell that shows
+    # something must still show it.
+    showing = [c for c in code if 'display(' in c.source or 'Image(' in c.source]
+    assert len(showing) >= 10, 'notebook lost its display cells'
+    assert all(c.outputs for c in showing), 'a display cell lost its output'
+    assert all(c.execution_count is not None for c in code), 'execution counts were dropped'
