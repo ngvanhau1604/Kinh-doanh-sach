@@ -2,11 +2,14 @@
 import re
 import numpy as np
 import pandas as pd
-from .config import CAT_FIELDS, GENRES, CHANNELS, PARAMS, PRICE_LABELS, RATING_LABELS
+from .config import CAT_FIELDS, GENRES, CHANNELS, PARAMS, PRICE_LABELS, RATING_LABELS, DISCOUNT_LABELS
 
 
 def price_group(s):
-    return pd.Series(np.select([s<80000,s<=200000],PRICE_LABELS[:2],default=PRICE_LABELS[2]),index=s.index)
+    # np.select sends NaN to `default`, which used to label a missing price as the highest
+    # segment — a silent bias toward the premium bucket. Missing stays missing.
+    out = pd.Series(np.select([s<80000,s<=200000],PRICE_LABELS[:2],default=PRICE_LABELS[2]),index=s.index)
+    return out.where(s.notna(),'Chưa biết')
 
 
 def rating_group(s):
@@ -25,7 +28,7 @@ def features(d):
     d['thang_nam']=dt.dt.strftime('%Y-%m')
     d['nam_ban']=dt.dt.year
     d['quy_ban']=dt.dt.to_period('Q').astype(str)
-    d['nhom_giam_gia']=pd.cut(d.giam_gia_niem_yet,[-1,5,15,25,40],labels=['0–5%','>5–15%','>15–25%','>25–40%']).astype('string')
+    d['nhom_giam_gia']=pd.cut(d.giam_gia_niem_yet,[-1,5,15,25,40],labels=DISCOUNT_LABELS).astype('string')
     return d
 
 

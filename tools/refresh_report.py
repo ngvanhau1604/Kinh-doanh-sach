@@ -9,6 +9,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from src.report_builder import build_report
+from run import manifest_files
 
 data = pd.read_csv(ROOT / 'data/processed/book_sales_clean.csv')
 metrics = json.loads((ROOT / 'results/metrics.json').read_text(encoding='utf8'))
@@ -20,8 +21,6 @@ build_report(ROOT, data, tables, metrics['metrics'], metrics['validation'],
              pd.read_csv(ROOT / 'results/recovery.csv'))
 manifest_path = ROOT / 'results/manifest.json'
 manifest = json.loads(manifest_path.read_text(encoding='utf8'))
-for path in (ROOT / 'report').glob('*'):
-    if path.is_file():
-        manifest['files'][path.relative_to(ROOT).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
-manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf8')
+manifest['files'] = manifest_files(ROOT)
+manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf8', newline='\n')
 print('Report regenerated from existing analysis results.')
