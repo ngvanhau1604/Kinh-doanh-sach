@@ -8,7 +8,7 @@ from .config import PARAMS
 
 
 def enrich(sections, m, v, stages, q, raw, families=None, null=None, nullstats=None,
-           coverage=None, missing=None, exp=None):
+           coverage=None, missing=None, exp=None, boot=None):
     from .report_builder import f
 
     p = PARAMS
@@ -52,12 +52,13 @@ def enrich(sections, m, v, stages, q, raw, families=None, null=None, nullstats=N
         9:'4.4 Giá và giảm giá',
         10:'4.5 Điểm sách và lượng bán',
         11:'4.6 Kiểm chứng bằng phân phối null',
-        12:'4.7 Cấu trúc tương quan',
-        13:'4.8 Kênh bán và phân khúc giá',
-        14:'5.1 Thí nghiệm thay đổi giả định',
-        15:'5.2 Thí nghiệm dữ liệu thiếu',
-        16:'5.3 Độ bao phủ danh mục',
-        17:'Chương 6 Thảo luận và kết luận',
+        12:'4.7 Khoảng bootstrap cho các chỉ tiêu chính',
+        13:'4.8 Cấu trúc tương quan',
+        14:'4.9 Kênh bán và phân khúc giá',
+        15:'5.1 Thí nghiệm thay đổi giả định',
+        16:'5.2 Thí nghiệm dữ liệu thiếu',
+        17:'5.3 Độ bao phủ danh mục',
+        18:'Chương 6 Thảo luận và kết luận',
     }
     for i, title in titles.items():
         sections[i]['title'] = title
@@ -72,7 +73,7 @@ def enrich(sections, m, v, stages, q, raw, families=None, null=None, nullstats=N
         f'Tuy nhiên, {f(n_truth)} mã nghiệp vụ chuẩn chỉ giảm {f(n_business_lost)} mã, vì các bản sao không đại diện giao dịch bổ sung. Do đó tỷ lệ giữ dữ liệu nghiệp vụ được tính bằng {f(n_clean)}/{f(n_truth)}, thay vì {f(n_clean)}/{f(n_raw)}. '
         'Việc công bố cả hai số giúp tránh đánh đồng khử trùng với mất giao dịch.')
     sections[7]['paras'].append('So sánh tháng dựa trên tổng giá trị cần xem thêm số ngày lịch và số giao dịch trong từng tháng. Tháng ngắn hơn có ít cơ hội phát sinh dòng bán hơn khi ngày được chọn đều. Vì vậy mức chênh lệch đỉnh và đáy là kết quả mô tả tổng hợp. Một phân tích vận hành mở rộng có thể báo cáo thêm giá trị bình quân theo ngày hoạt động và số cuốn trên đơn để tách quy mô giao dịch khỏi giá trị mỗi giao dịch.')
-    sections[12]['paras'].append(
+    sections[13]['paras'].append(
         f'Sai lệch tổng giá trị trung bình ở cả ba kịch bản nằm quanh {f(v["relative_revenue_error_pct"],3)}%. Kết quả này cho thấy cơ chế cách ly gây thiếu tổng trong các lần thử đang xét, kể cả khi giả định về mùa vụ hoặc giảm giá thay đổi. '
         'Đây là một lý do cần theo dõi chỉ tiêu đầy đủ song song với chỉ tiêu sửa đúng. Khi tăng số lần chạy, MCSE của trung bình thường giảm theo căn bậc hai của số lần chạy trong điều kiện các lần chạy độc lập và phương sai hữu hạn.')
     if families is not None and len(families):
@@ -89,26 +90,35 @@ def enrich(sections, m, v, stages, q, raw, families=None, null=None, nullstats=N
             'Không quy tắc nào chỉ dựa trên miền giá trị phát hiện được chúng, và bài không dựng quy tắc đọc dữ liệu chuẩn để xóa chúng, vì làm vậy sẽ biến đáp án của thí nghiệm thành đầu vào của quy trình.')
     if null is not None and nullstats is not None and len(nullstats):
         ns = nullstats.set_index('metric')
+        _s = null['rating_book_qty_r'].dropna()
+        _lo, _hi = _s.quantile(.025), _s.quantile(.975)
+        _obs = m['rating_book_qty_r']
+        _inside = _lo <= _obs <= _hi
         sections[10]['paras'].append(
-            f'Để biết giá trị {f(m["rating_book_qty_r"],3)} có ý nghĩa hay chỉ là nhiễu, dữ liệu được sinh lại qua {f(len(null))} seed và tính lại cùng hệ số. '
-            f'Phân phối null có trung bình {f(ns.loc["rating_book_qty_r","mean"],3)}, độ lệch chuẩn {f(ns.loc["rating_book_qty_r","sd"],3)} và khoảng 95% thực nghiệm [{f(ns.loc["rating_book_qty_r","p025"],3)}; {f(ns.loc["rating_book_qty_r","p975"],3)}]. '
-            f'Giá trị quan sát nằm ngoài khoảng đó, ở phân vị thứ {f(100*(null["rating_book_qty_r"].dropna()<m["rating_book_qty_r"]).mean(),1)}. Vì vậy không thể nói giá trị này chỉ là nhiễu, và cũng không thể nói nó là quan hệ thị trường: nó chỉ ra một nguồn tương quan phụ trong mô hình hoặc trong quy trình làm sạch cần được giải thích.')
+            f'Để biết giá trị {f(_obs,3)} có ý nghĩa hay chỉ là nhiễu, dữ liệu được sinh lại qua {f(len(null))} seed và tính lại cùng hệ số. '
+            f'Phân phối null có trung bình {f(ns.loc["rating_book_qty_r","mean"],3)}, độ lệch chuẩn {f(ns.loc["rating_book_qty_r","sd"],3)} và khoảng 95% thực nghiệm [{f(_lo,3)}; {f(_hi,3)}]. '
+            f'Giá trị quan sát ở phân vị thứ {f(100*(_s<_obs).mean(),1)} và nằm {"trong" if _inside else "ngoài"} khoảng đó. '
+            + ('Vì vậy nó tương thích với mức dao động do chính mô hình sinh ra, và không được trình bày như một phát hiện. '
+               'Điều này cũng không cho phép kết luận ngược lại rằng có một quan hệ thị trường: điểm đánh giá được sinh độc lập với lượng, nên ở cấp quần thể tương quan bằng 0 theo thiết kế.'
+               if _inside else
+               'Vì vậy không thể nói giá trị này chỉ là nhiễu, và cũng không thể nói nó là quan hệ thị trường: nó chỉ ra một nguồn tương quan phụ trong mô hình hoặc trong quy trình làm sạch cần được giải thích.')
+            + ' Việc phân vị và khoảng được báo cáo cùng nhau là có chủ ý, vì một giá trị có thể ở vùng đuôi mà vẫn nằm trong khoảng trung tâm 95%.')
     if coverage is not None and len(coverage):
-        sections[15]['paras'].append(
+        sections[17]['paras'].append(
             f'Giả định danh mục đầy đủ cũng được đo riêng, và kết quả nghiêm trọng hơn cách báo cáo cũ mô tả. Khi một mã sách không có trong danh mục, dòng giao dịch của nó không tra được thuộc tính và bị cách ly, nên độ bao phủ danh mục quyết định trực tiếp độ đầy đủ của tổng giá trị bán hàng chứ không chỉ độ đầy đủ của các cột mô tả. '
             'Ở mức bao phủ 50%, khoảng một nửa giá trị bán hàng biến khỏi tập phân tích. Đây là lý do giả định này phải được nêu ở phần hạn chế như một điều kiện của toàn bộ kết quả, không phải một chi tiết kỹ thuật.')
-    sections[14]['paras'] = [p_ for p_ in sections[14]['paras'] if not p_.startswith(('Trách nhiệm nhóm:', 'Không có căn cứ'))]
-    sections[14]['paras'].insert(1,
+    sections[15]['paras'] = [p_ for p_ in sections[15]['paras'] if not p_.startswith(('Trách nhiệm nhóm:', 'Không có căn cứ'))]
+    sections[15]['paras'].insert(1,
         f'Ý nghĩa quản trị trực tiếp của kết quả là xây dựng cơ chế đối soát trước khi sử dụng báo cáo bán hàng. Sai lệch {f(revenue_gap)} đồng giữa tập chuẩn và tập sạch cho biết phần giá trị nằm trong các giao dịch chưa đủ điều kiện phân tích. '
         'Khi vận hành thực tế, người phụ trách dữ liệu cần rà soát hồ sơ gốc của các mã bị cách ly, cập nhật trạng thái xử lý và tính lại tổng sau khi xác minh. Nhờ đó, báo cáo thể hiện cả kết quả phân tích và phạm vi dữ liệu đang chờ xử lý.')
-    sections[14]['paras'].insert(2, 'Các kết quả theo thể loại, sách, kênh và thời gian cung cấp cấu trúc cho một báo cáo quản trị định kỳ. Người quản lý có thể dùng cấu trúc này để chọn nhóm cần kiểm tra thêm, chẳng hạn một đầu sách có tổng lượng cao do ít đơn mua nhiều. Quyết định nhập hàng cần bổ sung tồn kho và thời gian cung ứng. Quyết định khuyến mãi cần bổ sung giá vốn và chi phí kênh. Việc nêu dữ liệu cần bổ sung giúp chuyển nhận xét mô tả thành một quy trình ra quyết định có điều kiện kiểm chứng.')
+    sections[15]['paras'].insert(2, 'Các kết quả theo thể loại, sách, kênh và thời gian cung cấp cấu trúc cho một báo cáo quản trị định kỳ. Người quản lý có thể dùng cấu trúc này để chọn nhóm cần kiểm tra thêm, chẳng hạn một đầu sách có tổng lượng cao do ít đơn mua nhiều. Quyết định nhập hàng cần bổ sung tồn kho và thời gian cung ứng. Quyết định khuyến mãi cần bổ sung giá vốn và chi phí kênh. Việc nêu dữ liệu cần bổ sung giúp chuyển nhận xét mô tả thành một quy trình ra quyết định có điều kiện kiểm chứng.')
     result = [sections[0], introduction, sections[1], theory,
         block('Chương 3 Xây dựng và xử lý dữ liệu', 'Quy trình gồm thiết kế danh mục, sinh giao dịch chuẩn, tạo bản dữ liệu có lỗi, chuẩn hóa và đối chiếu kết quả. Ba lớp dữ liệu nguồn, dữ liệu xử lý và dữ liệu kiểm chứng có vai trò riêng. Các bước xử lý đều ghi nhật ký để giải thích số dòng thay đổi và giá trị được sửa.'), *sections[2:6],
         block('Chương 4 Kết quả phân tích và trực quan hóa',
             f'Toàn bộ phân tích trong chương sử dụng {f(n_clean)} dòng sạch của kịch bản cơ sở. Tổng giá trị bán hàng là {f(m["revenue"])} đồng với {f(m["quantity"])} cuốn. '
-            'Các biểu đồ được đọc theo thứ tự từ cơ cấu sản phẩm đến thời gian, quan hệ giữa các biến và kênh phân phối. Mỗi mục trình bày kết quả định lượng, giải thích trong phạm vi mô hình và ý nghĩa thực hành.'), *sections[6:14],
-        block('Chương 5 Đánh giá độ nhạy của kết quả', 'Một kết quả xuất hiện trong một lần mô phỏng có thể phụ thuộc hạt giống ngẫu nhiên hoặc tham số thiết kế. Chương này thay đổi từng giả định và so sánh nhiều lần chạy. Các thí nghiệm bổ sung giúp nhận diện nguồn hình thành kết quả, đồng thời đánh giá lựa chọn xử lý thiếu dữ liệu.'), *sections[14:17],
-        *sections[17:]]
+            'Các biểu đồ được đọc theo thứ tự từ cơ cấu sản phẩm đến thời gian, quan hệ giữa các biến và kênh phân phối. Mỗi mục trình bày kết quả định lượng, giải thích trong phạm vi mô hình và ý nghĩa thực hành.'), *sections[6:15],
+        block('Chương 5 Đánh giá độ nhạy của kết quả', 'Một kết quả xuất hiện trong một lần mô phỏng có thể phụ thuộc hạt giống ngẫu nhiên hoặc tham số thiết kế. Chương này thay đổi từng giả định và so sánh nhiều lần chạy. Các thí nghiệm bổ sung giúp nhận diện nguồn hình thành kết quả, đồng thời đánh giá lựa chọn xử lý thiếu dữ liệu.'), *sections[15:18],
+        *sections[18:]]
     result.append(block('Phụ lục A Cấu trúc dữ liệu và khả năng truy vết',
         'Mã raw_row_id phân biệt từng bản ghi nguồn. Mã ma_dong phân biệt giao dịch nghiệp vụ và được giữ nguyên khi tạo bản sao. Mã ma_sach liên kết nhiều dòng bán với một sách trong danh mục. Ba mã này phục vụ ba mục đích khác nhau, nên khử trùng phải dựa vào mã nghiệp vụ và nội dung sau chuẩn hóa.',
         'Các trường mô tả sách gồm tên sách, thể loại, tác giả, nhà xuất bản và năm xuất bản. Các trường giao dịch gồm ngày bán, kênh, giá gốc, giảm giá niêm yết, giá bán và số lượng. Điểm đánh giá là thuộc tính cố định của sách. Giá trị bán hàng và giảm giá thực tế là các biến được tính từ trường nguồn.',

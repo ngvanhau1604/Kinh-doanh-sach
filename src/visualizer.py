@@ -17,7 +17,7 @@ SCENARIO_LABELS={'Cơ sở':'Cơ sở','Không hệ số giảm giá':'Bỏ hệ
 SOURCE='Nguồn: dữ liệu mô phỏng, seed 42 | 2024–2025. '
 
 
-def generate_all_charts(d,tables,experiments,out,null=None,families=None,missing=None,coverage=None,metrics=None):
+def generate_all_charts(d,tables,experiments,out,null=None,families=None,missing=None,coverage=None,metrics=None,boot=None):
     out.mkdir(parents=True,exist_ok=True)
     def save(fig,name,note=''):
         fig.text(.02,.015,textwrap.fill(SOURCE+note,105),fontsize=9,color='#53606C')
@@ -118,3 +118,26 @@ def generate_all_charts(d,tables,experiments,out,null=None,families=None,missing
         ax[1].set_xlabel('Độ bao phủ danh mục (%)');ax[1].set_ylabel('Sai lệch giá trị bán hàng (%)')
         ax[1].set_title('Giá trị bán hàng bị thiếu theo mức khuyết')
         save(fig,'12_catalog_coverage.png','Đơn vị: dòng bán hàng. Danh mục bị che theo nguyên dòng sách, và dòng giao dịch của sách đó mất thuộc tính như một phép nối thất bại.')
+
+    # --- PR3 figure: the three intervals, side by side, because they are easy to conflate ----
+    if boot is not None and len(boot):
+        rows=[('rating_book_qty_r','Tương quan điểm–lượng (cấp sách)'),
+              ('discount_qty_r','Tương quan giảm giá–lượng (cấp dòng)'),
+              ('q4_share','Tỷ trọng quý IV (%)')]
+        fig,ax=plt.subplots(figsize=(11,4.8))
+        y=np.arange(len(rows))
+        for i,(metric,label) in enumerate(rows):
+            r=boot[boot.metric.eq(metric)].iloc[0]
+            ax.plot([r.ci_low,r.ci_high],[i,i],color=BLUE,lw=7,solid_capstyle='butt')
+            ax.plot(r.point,i,'o',color='#B23A48',ms=8,zorder=3)
+            ax.text(r.ci_high+r.ci_width*.06,i,f'[{r.ci_low:.3f}; {r.ci_high:.3f}]',
+                    va='center',fontsize=9)
+        ax.set_yticks(y,[l for _,l in rows]);ax.set_ylim(-.7,len(rows)-.3)
+        ax.set_xlabel('Giá trị ước lượng');ax.grid(axis='x',alpha=.25)
+        ax.set_title(f'Khoảng bootstrap {int(boot.n_boot.max()):,} lần rút lại, độ tin cậy 95%')
+        ax.text(.99,.02,'Thanh: khoảng bootstrap. Chấm: giá trị trên mẫu đã làm sạch.',
+                transform=ax.transAxes,ha='right',fontsize=9,color='#53606C')
+        save(fig,'13_bootstrap_ci.png',
+             'Đơn vị rút lại: dòng bán hàng, riêng tương quan cấp sách rút lại theo đầu sách. '
+             'Đây là biến thiên lấy mẫu trong mẫu mô phỏng, KHÔNG phải khoảng tin cậy thị trường '
+             'và không phải khoảng null ở Hình trước.')

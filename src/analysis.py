@@ -142,7 +142,13 @@ def null_band(metric='rating_book_qty_r', n_seeds=200, params=None):
                                seasonality=p['seasonality'],params=p)
         raw,events=corrupt(truth,seed=seed,missing_rate=p['missing_rate'],params=p)
         c,_,_,_,_=clean(raw,catalog,params=p)
-        books=c.groupby('ma_sach').agg(so_luong=('so_luong','sum'),diem=('diem_danh_gia','first'))
+        # Grouped exactly as `summarize` groups books, so the observed value and this band are on
+        # the same unit. Grouping by `ma_sach` alone was wrong: rows whose key did not resolve
+        # carry the placeholder BK9999, so six different books collapsed into one fake book with
+        # their quantities summed. That mismatch also made the band incomparable with the
+        # reported figure.
+        books=c.groupby(['ma_sach','ten_sach']).agg(so_luong=('so_luong','sum'),
+                                                    diem=('diem_danh_gia','first'))
         years=c.groupby('nam_ban').doanh_thu.sum()
         rows.append({'seed':seed,
                      'rating_book_qty_r':_r(books.diem.corr(books.so_luong)),
@@ -161,6 +167,86 @@ def null_summary(null):
         rows.append({'metric':col,'n':len(s),'mean':_r(s.mean()),'sd':_r(s.std()),
                      'p025':_r(s.quantile(.025)),'p975':_r(s.quantile(.975)),
                      'min':_r(s.min()),'max':_r(s.max())})
+    return pd.DataFrame(rows)
+
+
+BOOT_METRICS=('revenue','average_unit_price','rating_qty_r','rating_book_qty_r',
+              'discount_qty_r','q4_share','marketplace_share','digital_channel_share')
+
+
+def bootstrap(d, n_boot=2000, seed=42, metrics=BOOT_METRICS):
+    """Percentile bootstrap intervals for the reported figures.
+
+    Three things this is and is not, because conflating them is the easiest way to overclaim:
+
+    * It IS an interval for the sampling variability of the statistic given the cleaned sample.
+      Resampling rows answers "how much would this number move if the sample had come out
+      slightly differently".
+    * It is NOT a market confidence interval. The data are simulated, so there is no population
+      to infer to. It says nothing about real book sales.
+    * It is NOT the null band from `null_band`. That band asks whether a value could plausibly
+      have arisen from the generator's own randomness across seeds; this one asks how precisely
+      a single sample pins the value down. A value can sit inside one and outside the other, and
+      the report keeps them in separate sections for exactly that reason.
+
+    The resampling unit differs by metric, and that difference is the point. Line-level
+    statistics resample transaction rows. `rating_book_qty_r` resamples whole books, because it
+    is computed on one row per book: resampling lines would treat a book with 40 sales as 40
+    independent observations and produce an interval that is far too narrow.
+    """
+    rng=np.random.default_rng(seed)
+    d=d.reset_index(drop=True)
+    # Same grouping as summarize: the placeholder key BK9999 marks rows whose book could not be
+    # identified, so grouping on the key alone would merge several distinct books into one.
+    books=(d.groupby(['ma_sach','ten_sach'])
+             .agg(so_luong=('so_luong','sum'),diem=('diem_danh_gia','first'))
+             .reset_index())
+    shares=d.groupby('kenh_ban').doanh_thu.sum()/d.doanh_thu.sum()*100
+    q4=d.assign(q=pd.to_datetime(d.ngay_ban).dt.quarter).groupby('q').doanh_thu.sum()
+    n=len(d); nb=len(books)
+    draws={m:[] for m in metrics}
+    for _ in range(n_boot):
+        s=d.iloc[rng.integers(0,n,n)]
+        bs=books.iloc[rng.integers(0,nb,nb)]
+        for m in metrics:
+            if m=='revenue':
+                draws[m].append(float(s.doanh_thu.sum()))
+            elif m=='average_unit_price':
+                draws[m].append(float(s.doanh_thu.sum()/s.so_luong.sum()))
+            elif m=='rating_qty_r':
+                draws[m].append(float(s.diem_danh_gia.corr(s.so_luong)))
+            elif m=='rating_book_qty_r':
+                draws[m].append(float(bs.diem.corr(bs.so_luong)))
+            elif m=='discount_qty_r':
+                draws[m].append(float(s.giam_gia_thuc_te.corr(s.so_luong)))
+            elif m=='q4_share':
+                q=pd.to_datetime(s.ngay_ban).dt.quarter
+                draws[m].append(float(s.loc[q.eq(4),'doanh_thu'].sum()/s.doanh_thu.sum()*100))
+            elif m=='marketplace_share':
+                sh=s.groupby('kenh_ban').doanh_thu.sum()/s.doanh_thu.sum()*100
+                draws[m].append(float(sh.reindex(MARKETPLACE_CHANNELS).sum()))
+            elif m=='digital_channel_share':
+                sh=s.groupby('kenh_ban').doanh_thu.sum()/s.doanh_thu.sum()*100
+                draws[m].append(float(sh.reindex(DIGITAL_CHANNELS).sum()))
+    point={'revenue':float(d.doanh_thu.sum()),
+           'average_unit_price':float(d.doanh_thu.sum()/d.so_luong.sum()),
+           'rating_qty_r':float(d.diem_danh_gia.corr(d.so_luong)),
+           'rating_book_qty_r':float(books.diem.corr(books.so_luong)),
+           'discount_qty_r':float(d.giam_gia_thuc_te.corr(d.so_luong)),
+           'q4_share':float(q4.loc[4]/d.doanh_thu.sum()*100),
+           'marketplace_share':float(shares.reindex(MARKETPLACE_CHANNELS).sum()),
+           'digital_channel_share':float(shares.reindex(DIGITAL_CHANNELS).sum())}
+    unit={'revenue':'dòng bán hàng','average_unit_price':'dòng bán hàng',
+          'rating_qty_r':'dòng bán hàng','rating_book_qty_r':'đầu sách',
+          'discount_qty_r':'dòng bán hàng','q4_share':'dòng bán hàng',
+          'marketplace_share':'dòng bán hàng','digital_channel_share':'dòng bán hàng'}
+    rows=[]
+    for m in metrics:
+        a=np.array([x for x in draws[m] if np.isfinite(x)])
+        lo,hi=np.quantile(a,.025),np.quantile(a,.975)
+        rows.append({'metric':m,'unit':unit[m],'n_boot':len(a),'point':_r(point[m]),
+                     'boot_mean':_r(a.mean()),'boot_sd':_r(a.std(ddof=1)),
+                     'ci_low':_r(lo),'ci_high':_r(hi),'ci_width':_r(hi-lo)})
     return pd.DataFrame(rows)
 
 

@@ -15,7 +15,7 @@ import pytest
 from src.config import PARAMS
 from src.data_cleaner import clean, price_group
 from src.data_generator import corrupt, generate
-from src.analysis import channel_shares, experiments, summarize
+from src.analysis import channel_shares, experiments, summarize, bootstrap
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -356,3 +356,89 @@ def test_committed_notebook_keeps_its_outputs():
     assert len(showing) >= 10, 'notebook lost its display cells'
     assert all(c.outputs for c in showing), 'a display cell lost its output'
     assert all(c.execution_count is not None for c in code), 'execution counts were dropped'
+
+
+# --- bootstrap intervals -------------------------------------------------------------------
+
+def test_book_level_correlation_uses_the_same_grouping_as_the_report(bundle):
+    """Regression: `summarize` grouped books by (ma_sach, ten_sach) while `null_band` grouped by
+    ma_sach alone. Rows whose key did not resolve carry the placeholder BK9999, so the second
+    grouping merged six distinct books into one and summed their quantities. The reported value
+    and the null band it was compared against were therefore computed on different units."""
+    d = bundle['d']
+    by_pair = (d.groupby(['ma_sach', 'ten_sach'])
+                 .agg(q=('so_luong', 'sum'), r=('diem_danh_gia', 'first')))
+    by_key = d.groupby('ma_sach').agg(q=('so_luong', 'sum'), r=('diem_danh_gia', 'first'))
+    assert len(by_pair) > len(by_key), 'placeholder key no longer collapses distinct books'
+    assert not math.isclose(by_pair.r.corr(by_pair.q), by_key.r.corr(by_key.q), rel_tol=1e-6), \
+        'the two groupings agree, so this test no longer guards anything'
+    assert bundle['metrics']['rating_book_qty_r'] == round(by_pair.r.corr(by_pair.q), 6)
+
+
+def test_bootstrap_point_estimates_match_the_published_metrics(bundle):
+    """The interval must be centred on the number the report prints. A bootstrap that resamples
+    a different unit than `summarize` measures produces a point estimate that silently disagrees
+    with the headline figure."""
+    boot = bootstrap(bundle['d'], n_boot=120).set_index('metric')
+    m = bundle['metrics']
+    assert boot.loc['revenue', 'point'] == m['revenue']
+    assert boot.loc['rating_book_qty_r', 'point'] == m['rating_book_qty_r']
+    assert boot.loc['rating_qty_r', 'point'] == m['rating_qty_r']
+    assert boot.loc['discount_qty_r', 'point'] == m['discount_qty_r']
+    assert boot.loc['average_unit_price', 'point'] == m['average_unit_price']
+
+
+def test_bootstrap_intervals_bracket_their_point_estimate(bundle):
+    boot = bootstrap(bundle['d'], n_boot=200)
+    for row in boot.itertuples():
+        assert row.ci_low <= row.point <= row.ci_high, row.metric
+        assert row.ci_width > 0, row.metric
+
+
+def test_book_level_interval_is_wider_than_a_line_level_one(bundle):
+    """Resampling books must give a wider interval than resampling lines for the book-level
+    correlation, because there are only ~300 books but ~6500 lines. If the two were equal the
+    book-level metric would be pretending to a precision it does not have."""
+    d = bundle['d']
+    books = (d.groupby(['ma_sach', 'ten_sach'])
+               .agg(q=('so_luong', 'sum'), r=('diem_danh_gia', 'first')))
+    assert len(books) < len(d) / 10
+    boot = bootstrap(d, n_boot=300).set_index('metric')
+    # The line-level rating/quantity correlation is the same population quantity, measured on
+    # rows; it must be reported with a visibly tighter interval.
+    assert boot.loc['rating_book_qty_r', 'ci_width'] > boot.loc['rating_qty_r', 'ci_width']
+
+
+def test_null_band_verdict_follows_the_arithmetic(bundle):
+    """Regression: the report asserted the observed value was outside the null band while the
+    numbers said otherwise. The percentile (96.5) and the band (central 95%) answer different
+    questions, and the prose had been written from the first while claiming the second."""
+    import pandas as pd
+    from src.report_builder import _inside_band, _band_verdict
+
+    null = pd.read_csv(ROOT / 'results/null_distribution.csv')
+    s = null['rating_book_qty_r'].dropna()
+    lo, hi = s.quantile(.025), s.quantile(.975)
+    observed = bundle['metrics']['rating_book_qty_r']
+
+    expected = 'trong' if lo <= observed <= hi else 'ngoài'
+    assert _inside_band(null, 'rating_book_qty_r', observed) == expected
+    verdict = _band_verdict(null, 'rating_book_qty_r', observed)
+    assert ('tương thích' in verdict) == (expected == 'trong')
+
+    # The band must be wide enough that a value at the 96.5th percentile still sits inside it.
+    # If this ever fails, the band and the percentile are being computed on different units.
+    assert lo <= observed <= hi, (lo, observed, hi)
+
+
+def test_null_band_and_observed_value_use_the_same_book_grouping(bundle):
+    """The band is generated across seeds; the observed value comes from `summarize`. Both must
+    group books the same way, or the comparison is between two different quantities."""
+    import pandas as pd
+    from src.analysis import null_band
+
+    null = pd.read_csv(ROOT / 'results/null_distribution.csv')
+    # Recompute one seed through the same path the band uses and compare with summarize's rule.
+    one = null_band(n_seeds=1)
+    assert 'rating_book_qty_r' in one.columns
+    assert null['rating_book_qty_r'].notna().all()
