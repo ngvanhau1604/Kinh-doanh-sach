@@ -30,6 +30,8 @@ Lỗi phát hiện thêm trong quá trình làm, không có trong danh sách ban
 - **Hai cách gộp sách khác nhau.** `summarize` gộp theo `(ma_sach, ten_sach)`, `null_band` gộp chỉ theo `ma_sach`. Các dòng không tra được mã sách mang khóa thay thế `BK9999`, nên cách gộp thứ hai nhập sáu sách khác nhau thành một. Đây là nguyên nhân trực tiếp của kết luận F-04 sai ở mục 3.
 - **Câu văn mâu thuẫn còn sót** ở §4.5 nói ngược với §4.6 về cùng một kết quả.
 - **Danh mục tham khảo lặp URL hai lần** và không sắp xếp.
+- **CI chỉ chạy cho pull request có base là `main`.** PR3 và PR4 là stacked nên chưa từng được kiểm tra; danh sách check rỗng trông giống "chưa chạy" nhưng thực chất là "không bao giờ chạy". Sửa trigger xong thì lỗi tiếp theo lộ ra ngay bên dưới.
+- **`run.py` sập trên Windows CI.** `print(json.dumps(..., ensure_ascii=False))` gặp stdout cp1252 và ném `UnicodeEncodeError` ở ký tự 2772, làm hỏng bước pipeline smoke trên cả Python 3.12 và 3.13. Lỗi này không hiện ở máy local vì shell đã đặt `PYTHONIOENCODING=utf-8`. Nay phần in ra console lùi về `ensure_ascii=True` khi cần; tệp `metrics.json` vẫn ghi UTF-8 như cũ.
 
 ## 2. Cải tiến học thuật
 
@@ -80,20 +82,21 @@ kết quả, không phải chi tiết kỹ thuật.
 
 ## 4. Kết quả chạy kiểm thử và pipeline
 
-- `pytest -q`: **50 passed** (~92 s).
+- `pytest -q`: **51 passed** (~84 s).
 - `run.py --replications 50 --null-seeds 200 --missing-seeds 100`: chạy xong (~280 s), sinh PDF/HTML/MD.
+- `run.py --out .ci-out --skip-presentation --replications 3` **không đặt `PYTHONIOENCODING`**: exit 0 (đây là điều kiện CI thật).
 - `tools/build_notebook.py` + `tools/execute_notebook.py`: **18 code cells, không lỗi**; `--check` pass hai lần liên tiếp, working tree sạch.
 - `report/bao_cao.md`: 49.366 ký tự, không còn token chưa giải, 9 bảng (1–9) và 13 hình (1–13) liên tục, 26 tiêu đề chương/mục, 7 placeholder bìa.
-- CI PR1: **12/12 xanh** (6 job × 2 sự kiện, Python 3.11/3.12/3.13 trên ubuntu-latest và windows-latest).
+- CI: PR1 **12/12** xanh; PR2 **6/6**; PR3 **12/12**; PR4 **12/12** (6 job × 2 sự kiện, Python 3.11/3.12/3.13 trên ubuntu-latest và windows-latest).
 
 ## 5. Danh sách PR và trạng thái
 
 | PR | Nhánh | Base | Trạng thái |
 |---|---|---|---|
 | [#1](https://github.com/ngvanhau1604/Kinh-doanh-sach/pull/1) | `fix/reproducibility-and-tests` | `main` | **ĐÃ MERGE** (squash `97624e3`), CI 12/12 xanh |
-| [#2](https://github.com/ngvanhau1604/Kinh-doanh-sach/pull/2) | `feat/simulation-design` | `main` | Draft, chờ review |
-| [#3](https://github.com/ngvanhau1604/Kinh-doanh-sach/pull/3) | `feat/analysis-visualization` | `feat/simulation-design` | Draft, stacked trên PR2 |
-| [#4](https://github.com/ngvanhau1604/Kinh-doanh-sach/pull/4) | `feat/academic-report` | `feat/analysis-visualization` | Draft, stacked trên PR3 |
+| [#2](https://github.com/ngvanhau1604/Kinh-doanh-sach/pull/2) | `feat/simulation-design` | `main` | Draft, CI **6/6** xanh, chờ review |
+| [#3](https://github.com/ngvanhau1604/Kinh-doanh-sach/pull/3) | `feat/analysis-visualization` | `feat/simulation-design` | Draft, CI **12/12** xanh, stacked trên PR2 |
+| [#4](https://github.com/ngvanhau1604/Kinh-doanh-sach/pull/4) | `feat/academic-report` | `feat/analysis-visualization` | Draft, CI **12/12** xanh, stacked trên PR3 |
 
 Thứ tự merge: **PR2 → PR3 → PR4**. PR3 và PR4 là stacked, không merge độc lập được.
 
