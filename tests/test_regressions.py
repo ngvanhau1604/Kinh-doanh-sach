@@ -480,3 +480,25 @@ def test_cover_placeholders_are_marked_not_invented():
     for field in ['TRƯỜNG:', 'KHOA/BỘ MÔN:', 'HỌC PHẦN:', 'GIẢNG VIÊN HƯỚNG DẪN:', 'NHÓM THỰC HIỆN:']:
         assert field in text, field
     assert text.count('[CẦN ĐIỀN') >= 6
+
+
+def test_metrics_json_survives_a_console_that_cannot_encode_vietnamese():
+    """CI on windows-latest runs with a cp1252 stdout. Printing the metrics payload there raised
+    UnicodeEncodeError and failed the pipeline while passing locally under PYTHONIOENCODING=utf-8.
+    The file is written as UTF-8 either way; the console copy must degrade, not crash."""
+    import io
+    import json
+
+    payload = {'metric': 'doanh_thu', 'unit': 'đồng', 'note': 'Điểm đánh giá'}
+
+    # A stream that refuses anything outside cp1252, like the real Windows console.
+    strict = io.TextIOWrapper(io.BytesIO(), encoding='cp1252', errors='strict', newline='')
+    with pytest.raises(UnicodeEncodeError):
+        strict.write(json.dumps(payload, ensure_ascii=False))
+
+    # The fallback used by run.py must round-trip the same data.
+    escaped = json.dumps(payload, ensure_ascii=True)
+    strict.write(escaped)
+    strict.flush()
+    decoded = json.loads(strict.buffer.getvalue().decode('cp1252'))
+    assert decoded == payload
