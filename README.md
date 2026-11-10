@@ -80,8 +80,4 @@ ground_truth + nhãn lỗi + clean → đối soát (chỉ ở giai đoạn đá
 
 CSV là dữ liệu chuẩn; bỏ bản Excel cũ khỏi bộ mới để tránh giữ thêm bản có nguy cơ lệch. Có thể mở CSV UTF-8 trong Excel nhưng không coi một workbook chỉnh thủ công là dữ liệu đầu vào pipeline.
 
-## Nguồn và trách nhiệm
 
-Phương pháp tham khảo [Morris và cộng sự (2019)](https://pmc.ncbi.nlm.nih.gov/articles/PMC6492164/), [NIST Box Plot](https://www.itl.nist.gov/div898/handbook/eda/section3/boxplot.htm), [pandas.cut](https://pandas.pydata.org/docs/reference/api/pandas.cut.html) và [FAIR](https://www.gofair.foundation/fair-principles). Nguồn này không cung cấp các tham số thị trường cho mô phỏng. Chi tiết tại `docs/NGUON.md`.
-
-Bản sửa kế thừa đề tài và cấu trúc từ [Kohaku1709/Kinh-doanh-sach-](https://github.com/Kohaku1709/Kinh-doanh-sach-/tree/6bfe691904b4d721ee1a1743509f6b581b70ce81), commit `6bfe691904b4d721ee1a1743509f6b581b70ce81`. Không tự gán giấy phép mới cho tài sản của nhóm; chủ repository quyết định điều khoản sử dụng trước khi chia sẻ lại. Bản cập nhật được đưa vào lịch sử repository; chưa có xác nhận nộp bài. Các công cụ hỗ trợ AI đã tham gia sửa mã, phân tích và soạn báo cáo; nhóm cần kiểm tra và khai báo theo quy định của lớp.
